@@ -180,7 +180,7 @@ $(function() {
   
   function initData (data){
     // 1. init years/config
-    app.Years = new models.Years(data.Years.elements);    
+    app.Years = new models.Years(data.Config.elements);    
     // 2. init types
     app.Types = new models.Types(data.Types.elements);    
     // 3. init sizes
