@@ -1,5 +1,5 @@
 
-$(function() {
+//$(function() {
   var doc_key = '0AswFq_8FWOlndERBTzlFT1lCY04zWG9UcEQ1VE92eFE',
       doc_url = 'https://docs.google.com/spreadsheet/pub?hl=en_US&hl=en_US&key='+doc_key+'&output=html',
       models = {},
@@ -8,14 +8,20 @@ $(function() {
       app = {},
       plot;  
   
-  // backbone models
+  // backbone models & collections
   models.Year = Backbone.Model.extend({
     isActive: function(){
       return (this.get('active')) === 'TRUE' ? true : false;              
-    }
+    }    
   });
   models.Years = Backbone.Collection.extend({        
-        model: models.Year
+    model: models.Year,
+    byYear : function(year){
+      var filtered = this.filter(function(year_model) {
+        return year_model.get("year") === year;
+      });
+      return new models.Years(filtered);            
+    },
   });
   
   models.Type = Backbone.Model.extend({    
@@ -33,40 +39,80 @@ $(function() {
   models.Criterion = Backbone.Model.extend({    
   });
   models.Criteria = Backbone.Collection.extend({        
-    model: models.Criterion
+    model: models.Criterion,    
   });
   
   models.CriteriaGroup = Backbone.Model.extend({    
+    initialize: function(){
+      this.count_criteria();
+    },
+    count_criteria: function() {
+      var group_count = 0;
+      var model = this;
+      app.Criteria.each(function(criterion){
+        if (criterion.get('criteriongroupid') === model.get('id')){          
+          group_count++;
+        }        
+      });
+      this.count = group_count;
+    },
   });
   models.CriteriaGroups = Backbone.Collection.extend({        
     model: models.CriteriaGroup
-  });
-  
-  models.Entity = Backbone.Model.extend({
-  });
-  models.Entities = Backbone.Collection.extend({        
-    model: models.Entity,
-    initialize: function() {
-      this.sort_key = 'title';
-    },
-    comparator: function(a, b) {
-      a = a.get(this.sort_key).toLowerCase();
-      b = b.get(this.sort_key).toLowerCase();
-      return a > b ?  1
-           : a < b ? -1
-           :          0;
-    }        
-  });   
+  }); 
   
   models.Record = Backbone.Model.extend({
-    getTotal : function(){
+    isActive: function(){
+      return (this.get('active')) === 'TRUE' ? true : false;              
+    },
+    getTotal : function(isPercentage){
+      isPercentage = typeof isPercentage !== "undefined" ? isPercentage : false;
       var total = 0;
-      var model = this;//there must be a better way
+      var model = this;
       app.Criteria.each(function(criterion){
-        total += model.get(criterion.get('criterioncolumn').replace('_',''));
+        total += model.get(criterion.get('id').replace('_',''));
       });
-      return total;
+      if (isPercentage){
+        return Math.round((total/app.Criteria.length) * 100);      
+      } else {
+        return total;
+      }
+    },           
+    getScore : function(criterion){      
+      return this.get(criterion);
+    },
+    getGroupScore : function(groupid, isPercentage){
+      isPercentage = typeof isPercentage !== "undefined" ? isPercentage : false;
+      
+      var total = 0;
+      var count = 0;
+      var model = this;
+      app.Criteria.each(function(criterion){
+        if (criterion.get('criteriongroupid') === groupid){
+          total += model.get(criterion.get('id').replace('_',''));
+          count++;
+        }
+      });      
+      if (isPercentage){
+        return Math.round((total/count) * 100);      
+      } else {
+        return total;
+      }
+    },
+    getRank : function(){
+      // rank is the number of entities with a greater score plus 1
+      // eg no one better >>> rank 1
+      // eg 10 entities with better score >>> rank 11
+      return app.Records.byScore(this.get('year'),this.getTotal()).length + 1;
+    },   
+    getDiffTotal : function(year){
+      //get record for specified year and same entity id
+      //TODO
+    },
+    getDiffRank : function(year){
+      //TODO      
     }
+    
   });
   models.Records = Backbone.Collection.extend({        
     model: models.Record,
@@ -94,7 +140,7 @@ $(function() {
     },
     byYear : function(year){
       var filtered = this.filter(function(record) {
-        return record.get("year") === year;
+        return record.isActive() && record.get("year") === year;
       });
       return new models.Records(filtered);            
     },
@@ -104,12 +150,102 @@ $(function() {
       });
       return new models.Records(filtered);         
     },
+    byType : function(type){
+      var filtered = this.filter(function(record) { 
+        return record.isActive() && record.get('typeid') === type;
+      });
+      return new models.Records(filtered);
+    },
+    bySize : function(staffno){      
+      var filtered = this.filter(function(record) { 
+        if (staffno !== '' && staffno > 0) {
+          var sizemin = 0;
+          var sizemax = 0;
+          app.Sizes.each(function(size){
+            if (staffno > size.get('min') && staffno <= size.get('max') ){
+              sizemin = size.get('min');
+              sizemax = size.get('max');            
+            }
+          });
+          return record.isActive() && record.get('staffno') > sizemin && record.get('staffno') <= sizemax;            
+        } else {
+          return record.isActive() && record.get('staffno') === '' || record.get('staffno') === 0 ;
+        }
+      }); 
+      return new models.Records(filtered);
+    },
+    byScore : function (year,min,max){
+      max = typeof max !== "undefined" ? max : 0;
+      
+      var filtered = this.filter(function(record) { 
+        if (max !== 0){
+          return record.isActive() && record.getTotal() > min && record.getTotal() <= max && record.get("year") === year;
+        } else {
+          return record.isActive() && record.getTotal() > min && record.get("year") === year;
+        }
+      });
+      return new models.Records(filtered);            
+    },           
+    getAverages : function(options){
+      var defaults = {type : 'all',size: 'all',criterion:'all',criteriaGroup:'all'};
+      
+      var filters = $.extend( {}, defaults, options );
+      
+      var filtered = this;
+      if (filters.type !== 'all'){
+        filtered = filtered.byType(filters.type);
+      }
+      if (filters.size !== 'all'){
+        filtered = filtered.bySize(filters.size);
+      }      
+      
+      var results = {};
+      var no_criteria;
+      if (filters.criterion !== 'all' ){
+        no_criteria = 1;   
+      } else if (filters.criteriaGroup !== 'all' ){
+        no_criteria = app.CriteriaGroups.where({'id':filters.criteriaGroup})[0].count;       
+      } else { // all
+        no_criteria = app.Criteria.length;
+      }
+      filtered.each(function(record){
+        if (record.isActive()){
+          var year = record.get('year');          
+          if (year in results) {      
+            if (filters.criterion !== 'all' ){
+              results[year].total += record.getScore(filters.criterion);
+            } else if (filters.criteriaGroup !== 'all' ){
+              results[year].total += record.getGroupScore(filters.criteriaGroup);
+            } else {
+              results[year].total += record.getTotal();
+            }
+            results[year].count++;
+          } else {
+            results[year] = {};
+            if (filters.criterion !== 'all' ){
+              results[year].total = record.getScore(filters.criterion);
+            } else if (filters.criteriaGroup !== 'all' ){
+              results[year].total = record.getGroupScore(filters.criteriaGroup);
+            } else {
+              results[year].total = record.getTotal();
+            }              
+            results[year].count = 1;
+          }            
+          results[year].percentage = Math.round(((results[year].total/results[year].count)/no_criteria) * 100);          
+        }
+      });
+      return results;      
+    },
+    
+    
   });
   
  /*
-  views.Tools
-  
-  views.Overview
+  * views.Tools
+ */ 
+
+ /* 
+  * views.Overview
   */
   views.Overview = Backbone.View.extend({
 
@@ -169,13 +305,15 @@ $(function() {
     console.log('storageReady');
     initData(data);        
 
-    app.Overview = new views.Overview({ collection:app.Records.byYear(2013).sort_by_score()});
+//    app.Overview = new views.Overview({ collection:app.Records.byYear(2013).sort_by_score()});
     
-    // add the stub HTML required by Flot to hold the graph canvas
-    $("#overview").append( app.Overview.render().el );
     
-    // show the flot graph
-    app.Overview.renderGraph();
+//    
+//    // add the stub HTML required by Flot to hold the graph canvas
+//    $("#overview").append( app.Overview.render().el );
+//    
+//    // show the flot graph
+//    app.Overview.renderGraph();
   }
   
   function initData (data){
@@ -188,6 +326,7 @@ $(function() {
     // 4. init types
     app.Criteria = new models.Criteria(data.Criteria.elements);  
     app.CriteriaGroups = new models.CriteriaGroups(data.CriteriaGroups.elements);  
+    
     // 5. finally init records
     // for all years 
     // try to find data, data["year"].elements
@@ -198,7 +337,7 @@ $(function() {
         _.each(records, function(record){
           record.year = year.get('year');
         });
-        app.Records.add(records);//console.log(year.get('year'));      
+        app.Records.add(records);   
       }
     });    
     console.log('dataReady');
@@ -207,9 +346,9 @@ $(function() {
   $(document).ready( function() {  
     //Init tabletop instance
     var tabletop = Tabletop.init({ key: doc_url, parseNumbers : true, callback: storageReady });
-    $('#export').click(function() {
-      renderPdf();
-    });
+//    $('#export').click(function() {
+//      renderPdf();
+//    });
   });
   
   
@@ -235,5 +374,5 @@ $(function() {
       doc.output('datauri');
 
   } 
-});
+//});
 
