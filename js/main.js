@@ -99,10 +99,13 @@
   // The scores for each year and entity, based on the year specific sheets of the google spreadsheet (one for each year)
   // Field entity ID connects entities' scores over multiple years
   models.Record = Backbone.Model.extend({
-    // check if the record is active
+    initialize: function(){
+      
+    },
+    // check if the record is active, always returns active
     isActive: function(isActive){
       isActive = typeof isActive !== "undefined" ? isActive : true;
-      return (this.get('active')) === 'TRUE' ? isActive : !isActive;              
+      return (this.get('active')) === 'TRUE' ? true : !isActive;              
     },
     // calculate total score, return as points or percentage
     getTotal : function(isPercentage){
@@ -150,13 +153,31 @@
       // eg 10 entities with better score >>> rank 11
       return app.Records.byScore(this.get('year'),this.getTotal()).length + 1;
     },   
-    getDiffTotal : function(year){
+    getDiffTotal : function(year, isPercentage){
+      isPercentage = typeof isPercentage !== "undefined" ? isPercentage : false;
+      // defaults to previous year
+      year = typeof year !== "undefined" ? year : this.get('year')-1;
       //get record for specified year and same entity id
-      //TODO
+      // get total of year to compare
+      var preRecord = app.Records.byEntity(this.get('entityid')).byYear(year).models[0];
+      if (typeof preRecord !== "undefined"){
+         return this.getTotal(isPercentage) - preRecord.getTotal(isPercentage);
+      } else {
+        return false;
+      }
     },
     getDiffRank : function(year){
-      //TODO      
-    }
+      // defaults to previous year
+      year = typeof year !== "undefined" ? year : this.get('year')-1;
+      //get record for specified year and same entity id
+      // get total of year to compare
+      var preRecord = app.Records.byEntity(this.get('entityid')).byYear(year).models[0];
+      if (typeof preRecord !== "undefined"){
+         return this.getRank() - preRecord.getRank();
+      } else {
+        return false;
+      }
+    },    
     
   });
   // the record collection - holds all records for all entities and years
@@ -268,7 +289,7 @@
     // calculate averages overall or by criterion and criteriongroup in percentage
     // returns averages for each year       
     getAverages : function(options){
-      var defaults = {criterion:'all',criteriaGroup:'all'};
+      var defaults = {criterion:'all',group:'all'};
       
       var filters = $.extend( {}, defaults, options );
       
