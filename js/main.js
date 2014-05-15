@@ -1,5 +1,5 @@
 
-//$(function() {
+$(function() {
 
   // globals   
   //
@@ -10,6 +10,7 @@
       views = {},
       routers = {},
       app = {},
+      config = {},
       plot;  
   
   /*
@@ -30,6 +31,9 @@
   // Collection of year models
   models.Years = Backbone.Collection.extend({        
     model: models.Year,
+    initialize: function() {
+      this.sort_key = 'year';
+    },            
     //filter models by year
     byYear : function(year){
       var filtered = this.filter(function(year_model) {
@@ -37,6 +41,18 @@
       });
       return new models.Years(filtered);            
     },
+    // allow sorting by score and alphabetically       
+    comparator: function(a, b) {      
+        a = a.get(this.sort_key);
+        b = b.get(this.sort_key);
+        return a < b ?  1
+             : a > b ? -1
+             :          0;      
+    },  
+    getRecent : function(){
+      this.sort();
+      return this.first().get("year");
+    }
   });
   
   // TYPES CATEGORISATION
@@ -59,7 +75,11 @@
   // 
   // Defines entity criteria, based on sheet 'Criteria' of the google spreadsheet 
   // Criterion ID field references column name of 'records'
-  models.Criterion = Backbone.Model.extend({ });
+  models.Criterion = Backbone.Model.extend({
+    initialize: function(){
+      this.id = this.get('id').replace('_','');
+    },
+  });
   models.Criteria = Backbone.Collection.extend({        
     model: models.Criterion,
     // the total points achievable
@@ -106,7 +126,7 @@
     isActive: function(isActive){
       isActive = typeof isActive !== "undefined" ? isActive : true;
       return (this.get('active')) === 'TRUE' ? true : !isActive;              
-    },
+    },        
     // calculate total score, return as points or percentage
     getTotal : function(isPercentage){
       isPercentage = typeof isPercentage !== "undefined" ? isPercentage : false;
@@ -114,7 +134,7 @@
       var model = this;
       //count points for each criterion
       app.Criteria.each(function(criterion){
-        total += model.get(criterion.get('id').replace('_',''));
+        total += model.getCriterionScore(criterion.id);
       });
       if (isPercentage){
         return Math.round((total/app.Criteria.getTotal()) * 100);      
@@ -123,8 +143,8 @@
       }
     },
     // get score of specific criterion, usually 0 or 1
-    getCriterionScore : function(criterion){      
-      return this.get(criterion);
+    getCriterionScore : function(criterion_id){      
+      return ($.isNumeric(this.get(criterion_id))) ? this.get(criterion_id) : 0;
     },
     // calculate score for a criteria group, return as points or percentage
     getGroupScore : function(groupid, isPercentage){
@@ -136,7 +156,7 @@
       //count points and number of criteria for group
       app.Criteria.each(function(criterion){
         if (criterion.get('criteriongroupid') === groupid){
-          total += model.get(criterion.get('id').replace('_',''));
+          total += model.getCriterionScore(criterion.id);
           count++; // maybe better reference group count
         }
       });      
@@ -300,8 +320,8 @@
       var no_criteria;
       if (filters.criterion !== 'all' ){
         no_criteria = 1;   
-      } else if (filters.criteriaGroup !== 'all' ){
-        no_criteria = app.CriteriaGroups.where({'id':filters.criteriaGroup})[0].count;       
+      } else if (filters.group !== 'all' ){
+        no_criteria = app.CriteriaGroups.where({'id':filters.group})[0].count;       
       } else { // all
         no_criteria = app.Criteria.length;
       }
@@ -314,8 +334,8 @@
           if (year in results) {      
             if (filters.criterion !== 'all' ){
               results[year].total += record.getCriterionScore(filters.criterion);
-            } else if (filters.criteriaGroup !== 'all' ){
-              results[year].total += record.getGroupScore(filters.criteriaGroup);
+            } else if (filters.group !== 'all' ){
+              results[year].total += record.getGroupScore(filters.group);
             } else {
               results[year].total += record.getTotal();
             }
@@ -325,8 +345,8 @@
             results[year] = {};
             if (filters.criterion !== 'all' ){
               results[year].total = record.getCriterionScore(filters.criterion);
-            } else if (filters.criteriaGroup !== 'all' ){
-              results[year].total = record.getGroupScore(filters.criteriaGroup);
+            } else if (filters.group !== 'all' ){
+              results[year].total = record.getGroupScore(filters.group);
             } else {
               results[year].total = record.getTotal();
             }              
@@ -344,50 +364,56 @@
  /*
   * views.Tools
  */ 
-
+  views.Tools = Backbone.View.extend({
+    initialize: function (attrs) {
+        this.options = attrs;
+    },    
+  });
  /* 
   * views.Overview
   */
   views.Overview = Backbone.View.extend({
-
-    attributes: { class: '' },
-
-    plotOptions: {
-      yaxis: {},
-      xaxis: {},
-      legend: { show: true },
-      grid: { 
-        hoverable: true, 
-        clickable: true, 
-        autoHighlight: true, 
-        backgroundColor: '#ffffff'
-      },
-      series: {
-           bars: { show: true, fill: 0.7, barWidth: 0.8, align: 'center' }
-      }
+    initialize: function (attrs) {
+        this.options = attrs;
     },
-
-    render: function() {
-
-      this.$el.html('<div class="legend"></div><div class="plot"></div>');
-
-      return this;
-    },
-
-    renderGraph: function() {
-
-      var options = _.clone(this.plotOptions);
-      var data= [];
-      for ( i=0;i<this.collection.length;i++ ) {
-          data.push([i, this.collection.models[i].getTotal() ]);
-      }        
-
-      var dataset = [{ label : 'Entity Totals', data : data }];
-
-      // Now, the chart can be drawn ...
-      plot = $.plot( this.$('.plot'), dataset, options );
-
-    }      
+//    attributes: { class: '' },
+//
+//    plotOptions: {
+//      yaxis: {},
+//      xaxis: {},
+//      legend: { show: true },
+//      grid: { 
+//        hoverable: true, 
+//        clickable: true, 
+//        autoHighlight: true, 
+//        backgroundColor: '#ffffff'
+//      },
+//      series: {
+//           bars: { show: true, fill: 0.7, barWidth: 0.8, align: 'center' }
+//      }
+//    },
+//
+//    render: function() {
+//
+//      this.$el.html('<div class="legend"></div><div class="plot"></div>');
+//
+//      return this;
+//    },
+//
+//    renderGraph: function() {
+//
+//      var options = _.clone(this.plotOptions);
+//      var data= [];
+//      for ( i=0;i<this.collection.length;i++ ) {
+//          data.push([i, this.collection.models[i].getTotal() ]);
+//      }        
+//
+//      var dataset = [{ label : 'Entity Totals', data : data }];
+//
+//      // Now, the chart can be drawn ...
+//      plot = $.plot( this.$('.plot'), dataset, options );
+//
+//    }      
 
   });  
     
@@ -400,21 +426,65 @@
       if !group rendered:
         CriteriaGroupView.render
   */
+  views.Details = Backbone.View.extend({
+    initialize: function (attrs) {
+        this.options = attrs;
+    },    
+  }); 
+  
+  // Routers
+  routers.App = Backbone.Router.extend({
+    routes: {
+        '': 'redirect',
+        'report/*filter': 'redirect',
+        ':year': 'year',
+        ':year/report/*filter': 'report' //fully qualified
+    },            
+    // year missing > add most recent year
+    redirect: function(route) {
+        console.log('route:redirect');
+        
+        var year = app.Years.getRecent(); 
+        
+        if (route) {          
+          this.navigate(year.toString() + '/report/' + route, {trigger: true});
+        } else {
+          this.navigate(year.toString(), {trigger: true});
+        }
+    },
+    // year specified, report missing >>> add report
+    year: function(year) {
+        console.log('route:year');
+        
+        //may need to validate further
+        if ($.isNumeric(year)) {
+          this.navigate(year + '/report/entities-all', {trigger: true});
+        } else {
+          // back to start
+          this.navigate('', {trigger: true});
+        }
+    },
+    // fully qualified >>> display report
+    report: function(year, route) {        
+        console.log('route:report');
+        
+        // Parse hash
+        var filter = route.split('-');
+        config.year = year;        
+        config.report = { collection: filter[0], id: filter[1] };
+                
+        // Load the tools view
+        this.tools    = new views.Tools(config.report);        
+        // Load the overview view
+        this.overview = new views.Overview(config.report);
+        // Load the details view
+        this.details  = new views.Details(config.report);
+    
+    },
 
-  /*
-   * storageReady
-   * 
-   * called when all spreadsheet data is stored 
-   *    
-   * @param {type} data
-   * @param {type} tabletop
-   * @returns {undefined}
-   */
-  function storageReady(data, tabletop){
-    console.log('storageReady');
-    // initialise data
-    initData(data);        
-  }
+  });
+
+
 //    app.Overview = new views.Overview({ collection:app.Records.byYear(2013).sortBy('score')});
     
     
@@ -427,14 +497,14 @@
   
   
   /*
-   * initData
+   * data_init
    * 
    * set up models and collections
    * 
    * @param {type} data: all spreadsheet data 
    * @returns {undefined}
    */  
-  function initData (data){
+  function data_init (data){
     // 1. init years/config
     app.Years = new models.Years(data.Years.elements);    
     // 2. init types
@@ -443,8 +513,7 @@
     app.Sizes = new models.Sizes(data.Sizes.elements);    
     // 4. init criteria and criteriaGroups
     app.Criteria = new models.Criteria(data.Criteria.elements);  
-    app.CriteriaGroups = new models.CriteriaGroups(data.CriteriaGroups.elements);  
-    
+    app.CriteriaGroups = new models.CriteriaGroups(data.CriteriaGroups.elements);      
     // 5. finally init records
     // for all active years 
     // try to find data, data["year"].elements
@@ -461,36 +530,57 @@
     console.log('data initialised');
   }
   
-  $(document).ready( function() {  
-    //Initialise tabletop instance with data, calls storageReady when all data read
-    var tabletop = Tabletop.init({ key: doc_url, parseNumbers : true, callback: storageReady });
-//    $('#export').click(function() {
-//      renderPdf();
-//    });
-  });
+  /*
+   * storageReady
+   * 
+   * called when all spreadsheet data is stored 
+   *    
+   * @param {type} data
+   * @param {type} tabletop
+   * @returns {undefined}
+   */
+  function data_loaded(data, tabletop){
+    console.log('data loaded');
+    // initialise data
+    data_init(data);  
+    // start application
+    app.App = new routers.App();
+    Backbone.history.start();
+  }
+  
+    // Start the application
+  $(function() {
+    //Initialise tabletop instance with data, calls data_loaded when all data read
+    var tabletop = Tabletop.init({ key: doc_url, parseNumbers : true, callback: data_loaded });
+  });  
+
+//  
+//  
+//  function renderPdf() {   
+//      var srcCanvas = plot.getCanvas();
+//      var destinationCanvas = document.createElement("canvas");
+//      destinationCanvas.width = srcCanvas.width;
+//      destinationCanvas.height = srcCanvas.height;
+//
+//      var destCtx = destinationCanvas.getContext('2d');
+//
+//      //create a rectangle with the desired color
+//      destCtx.fillStyle = "#FFFFFF";
+//      destCtx.fillRect(0,0,srcCanvas.width,srcCanvas.height);
+//
+//      //draw the original canvas onto the destination canvas
+//      destCtx.drawImage(srcCanvas, 0, 0);
+//      var imgData = destinationCanvas.toDataURL('image/jpeg');
+//
+//      var doc = new jsPDF('p', 'pt', 'a4');
+//
+//      doc.addImage(imgData, 'JPEG', 15, 40, 400, 200);
+//      doc.output('datauri');
+//
+//  } 
   
   
-  function renderPdf() {   
-      var srcCanvas = plot.getCanvas();
-      var destinationCanvas = document.createElement("canvas");
-      destinationCanvas.width = srcCanvas.width;
-      destinationCanvas.height = srcCanvas.height;
 
-      var destCtx = destinationCanvas.getContext('2d');
-
-      //create a rectangle with the desired color
-      destCtx.fillStyle = "#FFFFFF";
-      destCtx.fillRect(0,0,srcCanvas.width,srcCanvas.height);
-
-      //draw the original canvas onto the destination canvas
-      destCtx.drawImage(srcCanvas, 0, 0);
-      var imgData = destinationCanvas.toDataURL('image/jpeg');
-
-      var doc = new jsPDF('p', 'pt', 'a4');
-
-      doc.addImage(imgData, 'JPEG', 15, 40, 400, 200);
-      doc.output('datauri');
-
-  } 
-//});
+  
+});
 
