@@ -1,22 +1,21 @@
 
-$(function() {
+//$(function() {
 
   // globals   
   //
   // the pseudo database: all data kept in google spreadsheet   
-  var doc_key = '0AswFq_8FWOlndERBTzlFT1lCY04zWG9UcEQ1VE92eFE',
-      doc_url = 'https://docs.google.com/spreadsheet/pub?hl=en_US&hl=en_US&key='+doc_key+'&output=html',
-      models = {},
-      views = {},
-      routers = {},
-      app = {},
-      config = {},
+  var doc_key  = '0AswFq_8FWOlndERBTzlFT1lCY04zWG9UcEQ1VE92eFE',
+      doc_url  = 'https://docs.google.com/spreadsheet/pub?hl=en_US&hl=en_US&key='+doc_key+'&output=html',
+      models   = {},
+      views    = {},
+      routers  = {},
+      app      = {},
       plot;  
   
   /*
    * backbone models & collections
    */
-  
+  models.Filter = Backbone.Model.extend({});
   // YEARS
   //
   // Model:
@@ -49,10 +48,21 @@ $(function() {
              : a > b ? -1
              :          0;      
     },  
-    getRecent : function(){
-      this.sort();
+    getLast : function(){
+      this.active().sort();
       return this.first().get("year");
-    }
+    },
+    getFirst : function(){
+      this.active().sort();
+      return this.last().get("year");
+    },
+    // only active
+    active : function(){
+      var filtered = this.filter(function(year) {
+        return year.isActive();
+      });
+      return new models.Years(filtered);
+    },            
   });
   
   // TYPES CATEGORISATION
@@ -68,7 +78,15 @@ $(function() {
   // Defines staff size categories, based on sheet 'Sizes' of the google spreadsheet 
   models.Size = Backbone.Model.extend({});
   models.Sizes = Backbone.Collection.extend({        
-    model: models.Size
+    model: models.Size,
+    bySize : function (staffno) {
+      var filtered = this.filter(function(size) { 
+        if (staffno !== '' && staffno > 0) {
+          return (Math.ceil(staffno) >= size.get('min') && Math.ceil(staffno) <= size.get('max') );                     
+        } 
+      }); 
+      return new models.Sizes(filtered);
+    },
   });
   
   // CRITERIA
@@ -84,7 +102,7 @@ $(function() {
     model: models.Criterion,
     // the total points achievable
     // currently 1 point for each criterion
-    getTotal : function(){
+    getMax : function(){
       return this.length;
     }
   });
@@ -137,7 +155,7 @@ $(function() {
         total += model.getCriterionScore(criterion.id);
       });
       if (isPercentage){
-        return Math.round((total/app.Criteria.getTotal()) * 100);      
+        return Math.round((total/app.Criteria.getMax()) * 100);      
       } else {
         return total;
       }
@@ -173,7 +191,7 @@ $(function() {
       // eg 10 entities with better score >>> rank 11
       return app.Records.byScore(this.get('year'),this.getTotal()).length + 1;
     },   
-    getDiffTotal : function(year, isPercentage){
+    getTotalChange : function(year, isPercentage){
       isPercentage = typeof isPercentage !== "undefined" ? isPercentage : false;
       // defaults to previous year
       year = typeof year !== "undefined" ? year : this.get('year')-1;
@@ -186,7 +204,7 @@ $(function() {
         return false;
       }
     },
-    getDiffRank : function(year){
+    getRankChange : function(year){
       // defaults to previous year
       year = typeof year !== "undefined" ? year : this.get('year')-1;
       //get record for specified year and same entity id
@@ -197,7 +215,13 @@ $(function() {
       } else {
         return false;
       }
-    },    
+    },  
+    getStaffNo : function(){     
+      return (this.get('staffno') !== '') ? this.get('staffno') : 'Not specified';
+    },
+    getTypeTitle : function(){
+      return (this.get('typeid') !== '') ? app.Types.findWhere({id : this.get('typeid').trim()}).get('title') : 'Not specified';      
+    },
     
   });
   // the record collection - holds all records for all entities and years
@@ -277,14 +301,14 @@ $(function() {
           var sizemin = 0;
           var sizemax = 0;
           app.Sizes.each(function(size){
-            if (staffno > size.get('min') && staffno <= size.get('max') ){
+            if (Math.ceil(staffno) >= size.get('min') && Math.ceil(staffno) <= size.get('max') ){
               sizemin = size.get('min');
               sizemax = size.get('max');            
             }
           });
           return record.isActive(isActive) 
-              && record.get('staffno') > sizemin 
-              && record.get('staffno') <= sizemax;            
+              && Math.ceil(record.get('staffno')) >= sizemin 
+              && Math.ceil(record.get('staffno')) <= sizemax;            
         } else {
           return record.isActive(isActive) 
               && (record.get('staffno') === '' || record.get('staffno') === 0) ;
@@ -305,10 +329,10 @@ $(function() {
         }
       });
       return new models.Records(filtered);            
-    },
+    },    
     // calculate averages overall or by criterion and criteriongroup in percentage
     // returns averages for each year       
-    getAverages : function(options){
+    getResults : function(options){
       var defaults = {criterion:'all',group:'all'};
       
       var filters = $.extend( {}, defaults, options );
@@ -325,7 +349,7 @@ $(function() {
       } else { // all
         no_criteria = app.Criteria.length;
       }
-      // for all record, update totals and count, also calculates percentage each step << this could be done more efficiently
+      // for all records, update totals and count, also calculates percentage each step << this could be done more efficiently
       this.each(function(record){
         //only active records
         if (record.isActive()){
@@ -362,20 +386,209 @@ $(function() {
   });
   
  /*
+  * views.Intro
+ */ 
+  views.Intro = Backbone.View.extend({
+    initialize: function () {
+        this.render();
+    },
+    render: function(){
+      var variables = { 
+        minYear: app.Years.getFirst(), 
+        maxYear: app.Years.getLast() };
+      this.$el.html(this.template(variables));
+      return this;      
+    },            
+    renderPDF: function (doc){
+      
+    },
+    template: _.template('\
+<h1>Crown Entities and the Good Employer</h1>\
+<h3>Annual Report Review <%= minYear %> to <%= maxYear %></h3>\
+<p>The Human Rights Comission reviews and analyses the reporting of good employer obligations\
+by Crown entities and publishes its findings in an annual report "Crown entities and the Good Employer". \
+Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown entities and monitor thier progress.\
+</p>\
+    ')
+  });
+  
+ /*
   * views.Tools
  */ 
   views.Tools = Backbone.View.extend({
-    initialize: function (attrs) {
-        this.options = attrs;
-    },    
+    initialize: function () {        
+        this.render();        
+        this.listenTo(this.model, 'change', this.render);
+    },
+    render: function(){
+      var variables = {
+        entities        : app.Records.byYear(parseInt(this.model.get('year'))).models,
+        types           : app.Types.models,
+        sizes           : app.Sizes.models,
+        years           : app.Years.active().models,        
+        allActive       : (this.model.get('report') === "entities" && this.model.get('id') === 'all') ? 'active' : '',
+        entityActiveID  : (this.model.get('report') === "entity") ? this.model.get('id') : '',        
+        typeActiveID    : (this.model.get('report') === "type") ? this.model.get('id') : '',
+        sizeActiveMin   : (this.model.get('report') === "size") ? this.model.get('id') : -1,
+        yearActive      : parseInt(this.model.get('year'))
+      };
+      this.$el.html(this.template(variables));
+      return this;      
+    },            
+    events : {
+      "click #all"      : "selectAll",
+      "click #renderPDF": "renderPDF",
+      "change #entity"  : "selectEntity", 
+      "change #type"    : "selectType", 
+      "change #size"    : "selectSize", 
+      "change #year"    : "selectYear", 
+    },
+    selectAll: function( event ){
+      event.preventDefault();
+      app.App.navigate(this.model.get('year') + '/report/entities-all', {trigger: true});
+    },        
+    selectEntity: function( event ){
+      event.preventDefault();
+      app.App.navigate(this.model.get('year') + '/report/entity-' + this.$("#entity").val(), {trigger: true});
+    },        
+    selectType: function( event ){
+      event.preventDefault();
+      app.App.navigate(this.model.get('year') + '/report/type-' + this.$("#type").val(), {trigger: true});
+    },        
+    selectSize: function( event ){
+      event.preventDefault();
+      app.App.navigate(this.model.get('year') + '/report/size-' + this.$("#size").val(), {trigger: true});
+    },
+    selectYear: function( event ){
+      event.preventDefault();
+      app.App.navigate(this.$("#year").val() + '/report/' + this.model.get('report') + '-' + this.model.get('id') , {trigger: true});
+    },
+    renderPDF: function( event ){
+        event.preventDefault();
+        // Button clicked, you can access the element that was clicked with event.currentTarget
+        alert( "RenderPDF" );
+    },            
+    template: _.template('\
+<button id="all" class="<%= allActive %>">All entities</button>\
+<select id="entity">\
+  <option value="none">Entity</option>\
+  <% _.forEach(entities, function (entity) {%>\
+    <option value="<%= entity.get("entityid") %>" <% if (entity.get("entityid") === parseInt(entityActiveID)) { print ("selected") } %> >\
+    <%= entity.get("title") %></option>\
+  <%})%>\
+</select>\
+<select id="type">\
+  <option value="none">Type</option>\
+  <% _.forEach(types, function (type) {%>\
+    <option value="<%= type.get("id") %>" <% if (type.get("id") === typeActiveID) { print ("selected") } %> >\
+    <%= type.get("title") %></option>\
+  <%})%>\
+</select>\
+<select id="size">\
+  <option value="none">Size</option>\
+  <% _.forEach(sizes, function (size) {%>\
+    <option value="<%= size.get("min") %>" <% if (size.get("min") <= sizeActiveMin && size.get("max") >= sizeActiveMin) { print ("selected") } %> >\
+    <%= size.get("title") %></option>\
+  <%})%>\
+</select>\
+<select id="year">\
+  <% _.forEach(years, function (year) {%>\
+    <option value="<%= year.get("year") %>" <% if (parseInt(year.get("year")) === yearActive) { print ("selected") } %>>\
+    <%= year.get("year") %></option>\
+  <%})%>\
+</select>\
+<a href="#" id="renderPDF">Download report as pdf</a>\
+    ')                
   });
  /* 
   * views.Overview
   */
   views.Overview = Backbone.View.extend({
-    initialize: function (attrs) {
-        this.options = attrs;
+    initialize: function () {
+        this.fields = {};
+        this.render();        
+        this.listenTo(this.model, 'change', this.render);
     },
+    render: function() {
+      var variables = {};
+      //var resultsAll = app.Records.getResults();
+      var year = parseInt(this.model.get('year'));
+      
+      this.fields.year = year;
+      this.fields.title = '';
+      this.fields.subtitle = '';
+      this.fields.type_label = '';
+      this.fields.type = '';
+      this.fields.size_label = '';
+      this.fields.size = '';
+//maybe best treated as details view      
+//      this.fields.overall_title = '';
+//      this.fields.overall = '';
+//      this.fields.overall_change = '';
+//      this.fields.rank_title = '';
+//      this.fields.rank = '';
+//      this.fields.rank_of = '';
+//      this.fields.rank_change = '';
+//      this.fields.summary = '';
+//maybe best implemented as a subview?      
+//      this.fields.overall_comparison_title = '';
+//      this.fields.overall_comparison_all = '';
+//      this.fields.overall_comparison_type = '';
+//      this.fields.overall_comparison_size = '';
+//      this.fields.overall_comparison = false;
+//      this.fields.overall_comparison_all_on = false;
+//      this.fields.overall_comparison_type_on = false;
+//      this.fields.overall_comparison_size_on = false;
+ 
+      // depeding on report 
+      // all entities
+      if (this.model.get('report') === "entities" && this.model.get('id') === 'all') {
+        this.fields.title = 'All entities';
+        this.fields.subtitle = 'This report shows the average compliance of all Crown entities';
+      } 
+      // individual entity
+      else if (this.model.get('report') === "entity") {
+        var entityID = parseInt(this.model.get('id'));
+        var entity = app.Records.byEntity(entityID).byYear(year).first();
+        this.fields.title = entity.get('title');
+        this.fields.subtitle = entity.get('explanation');
+        this.fields.type_label = 'Type';
+        this.fields.type = entity.getTypeTitle();
+        this.fields.size_label = 'Size';
+        this.fields.size = entity.getStaffNo();        
+      }
+      // type category report
+      else if (this.model.get('report') === "type") {       
+        var typeID = this.model.get('id');
+        var type = app.Types.findWhere({id:typeID});
+        this.fields.title = type.get('title');
+      }     
+      // size category report
+      else if (this.model.get('report') === "size") {       
+        var size = app.Sizes.bySize(this.model.get('id')).first();
+        this.fields.title = size.get('title');
+      }     
+      this.$el.html(this.template(this.fields));      
+      return this;      
+    },
+    renderGraph: function() {
+      
+    },
+    toPDF : function (doc){
+      
+    },
+template: _.template('\
+<h2><%= title %></h2>\
+<h4><%= subtitle %></h4>\
+<h2><%= year %></h2>\n\
+<% if (type !== "") {%>\n\
+<div><span class="label"><%= type_label %>: </span><%= type %></div>\n\
+<% } %>\n\
+<% if (size !== "") {%>\n\
+<div><span class="label"><%= size_label %>: </span><%= size %></div>\n\
+<% } %>\n\
+<div class="legend"></div><div class="plot"></div>\n\
+    '),            
 //    attributes: { class: '' },
 //
 //    plotOptions: {
@@ -429,8 +642,55 @@ $(function() {
   views.Details = Backbone.View.extend({
     initialize: function (attrs) {
         this.options = attrs;
-    },    
+        //create subviews for each criteria or group (for criteria that are part of a group)
+        //this.subViews = ...
+        this.render();        
+        this.listenTo(this.model, 'change', this.render);
+    },
+    render: function() {
+      
+    },
+//    renderGraphs: function() { 
+//    },
+    close: function() {
+      _.each(this.subViews, function(view) { view.remove(); });
+      this.remove();
+    },
+    toPDF : function (doc){
+      
+    }            
   }); 
+  
+  views.Criterion = Backbone.View.extend({
+    initialize: function (attrs) {
+        this.options = attrs;
+        this.render();
+    },
+    render: function() {
+      
+    },
+    renderGraph: function() {
+      
+    },
+    toPDF : function (doc){
+      
+    }    
+  });
+  views.CriteriaGroup = Backbone.View.extend({
+    initialize: function (attrs) {
+        this.options = attrs;
+        this.render();
+    },
+    render: function() {
+      
+    },
+    renderGraph: function() {
+      
+    },
+    toPDF : function (doc){
+      
+    }    
+  });
   
   // Routers
   routers.App = Backbone.Router.extend({
@@ -444,7 +704,7 @@ $(function() {
     redirect: function(route) {
         console.log('route:redirect');
         
-        var year = app.Years.getRecent(); 
+        var year = app.Years.getLast(); 
         
         if (route) {          
           this.navigate(year.toString() + '/report/' + route, {trigger: true});
@@ -470,15 +730,18 @@ $(function() {
         
         // Parse hash
         var filter = route.split('-');
-        config.year = year;        
-        config.report = { collection: filter[0], id: filter[1] };
-                
-        // Load the tools view
-        this.tools    = new views.Tools(config.report);        
-        // Load the overview view
-        this.overview = new views.Overview(config.report);
-        // Load the details view
-        this.details  = new views.Details(config.report);
+
+        app.filter = app.filter || new models.Filter();
+        app.filter.set({year:year,report:filter[0],id:filter[1]});           
+        
+        // load views if not already loaded
+        app.viewsIntro    = app.viewsIntro     || new views.Intro({ el: $("#intro") });
+        app.viewsTools    = app.viewsTools     || new views.Tools({ el: $("#tools"), model:app.filter });
+        app.viewsOverview = app.viewsOverview  || new views.Overview({ el: $("#overview"), model:app.filter });
+
+//        // Load the details view
+//        app.viewsDetails && (app.viewsDetails.close ? app.viewsDetails.close() : app.viewsDetails.remove());      
+//        app.viewsDetails = new views.Details({ el: $("#details") });
     
     },
 
@@ -505,19 +768,19 @@ $(function() {
    * @returns {undefined}
    */  
   function data_init (data){
-    // 1. init years/config
-    app.Years = new models.Years(data.Years.elements);    
+    // 1. init years
+    app.Years           = new models.Years(data.Years.elements);    
     // 2. init types
-    app.Types = new models.Types(data.Types.elements);    
+    app.Types           = new models.Types(data.Types.elements);    
     // 3. init sizes
-    app.Sizes = new models.Sizes(data.Sizes.elements);    
+    app.Sizes           = new models.Sizes(data.Sizes.elements);    
     // 4. init criteria and criteriaGroups
-    app.Criteria = new models.Criteria(data.Criteria.elements);  
-    app.CriteriaGroups = new models.CriteriaGroups(data.CriteriaGroups.elements);      
+    app.Criteria        = new models.Criteria(data.Criteria.elements);  
+    app.CriteriaGroups  = new models.CriteriaGroups(data.CriteriaGroups.elements);      
     // 5. finally init records
     // for all active years 
     // try to find data, data["year"].elements
-    app.Records = new models.Records();
+    app.Records         = new models.Records();
     app.Years.each(function(year){
       if (year.isActive()) {
         var records = data[year.get('year')].elements;
@@ -542,7 +805,7 @@ $(function() {
   function data_loaded(data, tabletop){
     console.log('data loaded');
     // initialise data
-    data_init(data);  
+    data_init(data);
     // start application
     app.App = new routers.App();
     Backbone.history.start();
@@ -582,5 +845,5 @@ $(function() {
   
 
   
-});
+//});
 
