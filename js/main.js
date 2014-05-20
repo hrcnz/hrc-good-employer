@@ -100,7 +100,7 @@
   });
   models.Criteria = Backbone.Collection.extend({        
     model: models.Criterion,
-    // the total points achievable
+    // the score points achievable
     // currently 1 point for each criterion
     getMax : function(){
       return this.length;
@@ -145,19 +145,19 @@
       isActive = typeof isActive !== "undefined" ? isActive : true;
       return (this.get('active')) === 'TRUE' ? true : !isActive;              
     },        
-    // calculate total score, return as points or percentage
-    getTotal : function(isPercentage){
+    // calculate score score, return as points or percentage
+    getScore : function(isPercentage){
       isPercentage = typeof isPercentage !== "undefined" ? isPercentage : false;
-      var total = 0;
+      var score = 0;
       var model = this;
       //count points for each criterion
       app.Criteria.each(function(criterion){
-        total += model.getCriterionScore(criterion.id);
+        score += model.getCriterionScore(criterion.id);
       });
       if (isPercentage){
-        return Math.round((total/app.Criteria.getMax()) * 100);      
+        return Math.round((score/app.Criteria.getMax()) * 100);      
       } else {
-        return total;
+        return score;
       }
     },
     // get score of specific criterion, usually 0 or 1
@@ -168,20 +168,20 @@
     getGroupScore : function(groupid, isPercentage){
       isPercentage = typeof isPercentage !== "undefined" ? isPercentage : false;
       
-      var total = 0;
+      var score = 0;
       var count = 0;
       var model = this;
       //count points and number of criteria for group
       app.Criteria.each(function(criterion){
         if (criterion.get('criteriongroupid') === groupid){
-          total += model.getCriterionScore(criterion.id);
+          score += model.getCriterionScore(criterion.id);
           count++; // maybe better reference group count
         }
       });      
       if (isPercentage){
-        return Math.round((total/count) * 100);      
+        return Math.round((score/count) * 100);      
       } else {
-        return total;
+        return score;
       }
     },
     // get rank of an entity 
@@ -189,17 +189,17 @@
       // rank is the number of entities with a greater score plus 1
       // eg no one better >>> rank 1
       // eg 10 entities with better score >>> rank 11
-      return app.Records.byScore(this.get('year'),this.getTotal()).length + 1;
+      return app.Records.byScore(this.get('year'),this.getScore()).length + 1;
     },   
-    getTotalChange : function(year, isPercentage){
+    getScoreChange : function(isPercentage, year){
       isPercentage = typeof isPercentage !== "undefined" ? isPercentage : false;
       // defaults to previous year
       year = typeof year !== "undefined" ? year : this.get('year')-1;
       //get record for specified year and same entity id
-      // get total of year to compare
+      // get score of year to compare
       var preRecord = app.Records.byEntity(this.get('entityid')).byYear(year).models[0];
       if (typeof preRecord !== "undefined"){
-         return this.getTotal(isPercentage) - preRecord.getTotal(isPercentage);
+         return this.getScore(isPercentage) - preRecord.getScore(isPercentage);
       } else {
         return false;
       }
@@ -208,10 +208,10 @@
       // defaults to previous year
       year = typeof year !== "undefined" ? year : this.get('year')-1;
       //get record for specified year and same entity id
-      // get total of year to compare
+      // get score of year to compare
       var preRecord = app.Records.byEntity(this.get('entityid')).byYear(year).models[0];
       if (typeof preRecord !== "undefined"){
-         return this.getRank() - preRecord.getRank();
+         return -1 * (this.getRank() - preRecord.getRank()); // positive rank change > improvement
       } else {
         return false;
       }
@@ -234,8 +234,8 @@
     // allow sorting by score and alphabetically       
     comparator: function(a, b) {
       if (this.sort_key === 'score'){
-        a = a.getTotal();
-        b = b.getTotal();
+        a = a.getScore();
+        b = b.getScore();
         return a > b ?  1
              : a < b ? -1
              :          0;
@@ -284,10 +284,10 @@
       var filtered = this.filter(function(record) { 
         if (type !== '') {
           return record.isActive(isActive) 
-              && record.get('typeid') === type;
+              && record.get('typeid').trim() === type;
         } else {
           return record.isActive(isActive) 
-              && record.get('typeid') === '';
+              && record.get('typeid').trim() === '';
         }
       });
       return new models.Records(filtered);
@@ -323,9 +323,9 @@
       
       var filtered = this.filter(function(record) { 
         if (max !== 0){
-          return record.isActive(isActive) && record.getTotal() > min && record.getTotal() <= max && record.get("year") === year;
+          return record.isActive(isActive) && record.getScore() > min && record.getScore() <= max && record.get("year") === year;
         } else {
-          return record.isActive(isActive) && record.getTotal() > min && record.get("year") === year;
+          return record.isActive(isActive) && record.getScore() > min && record.get("year") === year;
         }
       });
       return new models.Records(filtered);            
@@ -349,34 +349,34 @@
       } else { // all
         no_criteria = app.Criteria.length;
       }
-      // for all records, update totals and count, also calculates percentage each step << this could be done more efficiently
+      // for all records, update scores and count, also calculates percentage each step << this could be done more efficiently
       this.each(function(record){
         //only active records
         if (record.isActive()){
           var year = record.get('year');
-          //if key (year) present add totals
+          //if key (year) present add scores
           if (year in results) {      
             if (filters.criterion !== 'all' ){
-              results[year].total += record.getCriterionScore(filters.criterion);
+              results[year].score += record.getCriterionScore(filters.criterion);
             } else if (filters.group !== 'all' ){
-              results[year].total += record.getGroupScore(filters.group);
+              results[year].score += record.getGroupScore(filters.group);
             } else {
-              results[year].total += record.getTotal();
+              results[year].score += record.getScore();
             }
             results[year].count++;
           // else need to add key first
           } else {
             results[year] = {};
             if (filters.criterion !== 'all' ){
-              results[year].total = record.getCriterionScore(filters.criterion);
+              results[year].score = record.getCriterionScore(filters.criterion);
             } else if (filters.group !== 'all' ){
-              results[year].total = record.getGroupScore(filters.group);
+              results[year].score = record.getGroupScore(filters.group);
             } else {
-              results[year].total = record.getTotal();
+              results[year].score = record.getScore();
             }              
             results[year].count = 1;
           }            
-          results[year].percentage = Math.round(((results[year].total/results[year].count)/no_criteria) * 100);          
+          results[year].percentage = Math.round(((results[year].score/results[year].count)/no_criteria) * 100);          
         }
       });
       return results;      
@@ -505,72 +505,119 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
   */
   views.Overview = Backbone.View.extend({
     initialize: function () {
-        this.fields = {};
-        this.render();        
+        this.resultsAll = app.Records.getResults();
+//        this.graphView = new views.OverviewGraph();
+//        this.scoreView = new views.OverviewScore();
+        this.render();
         this.listenTo(this.model, 'change', this.render);
-    },
+    },    
     render: function() {
-      var variables = {};
-      //var resultsAll = app.Records.getResults();
-      var year = parseInt(this.model.get('year'));
-      
-      this.fields.year = year;
-      this.fields.title = '';
-      this.fields.subtitle = '';
-      this.fields.type_label = '';
-      this.fields.type = '';
-      this.fields.size_label = '';
-      this.fields.size = '';
-//maybe best treated as details view      
-//      this.fields.overall_title = '';
-//      this.fields.overall = '';
-//      this.fields.overall_change = '';
-//      this.fields.rank_title = '';
-//      this.fields.rank = '';
-//      this.fields.rank_of = '';
-//      this.fields.rank_change = '';
-//      this.fields.summary = '';
-//maybe best implemented as a subview?      
-//      this.fields.overall_comparison_title = '';
-//      this.fields.overall_comparison_all = '';
-//      this.fields.overall_comparison_type = '';
-//      this.fields.overall_comparison_size = '';
-//      this.fields.overall_comparison = false;
-//      this.fields.overall_comparison_all_on = false;
-//      this.fields.overall_comparison_type_on = false;
-//      this.fields.overall_comparison_size_on = false;
+      this.currentYear = parseInt(this.model.get('year'));
+      this.currentYearData = app.Years.byYear(this.currentYear).first();
+      this.currentCount = this.resultsAll[this.currentYear].count;
+      this.resetFields();
  
-      // depeding on report 
+      // depending on report 
       // all entities
       if (this.model.get('report') === "entities" && this.model.get('id') === 'all') {
+        // top
         this.fields.title = 'All entities';
         this.fields.subtitle = 'This report shows the average compliance of all Crown entities';
+        // bottom
+        this.fields.score = this.resultsAll[this.currentYear].percentage + '%';
+        this.fields.rank_title = 'Number of Crown entities';
+        this.fields.rank = this.currentCount;
+        this.fields.summary = this.currentYearData.get('summaryoverview');
       } 
       // individual entity
       else if (this.model.get('report') === "entity") {
         var entityID = parseInt(this.model.get('id'));
-        var entity = app.Records.byEntity(entityID).byYear(year).first();
+        var entity = app.Records.byEntity(entityID).byYear(this.currentYear).first();
+
+        var scoreChange = entity.getScoreChange(true);
+        if (scoreChange){
+          if (scoreChange > 0) {scoreChange = '+' + scoreChange;}
+          scoreChange = scoreChange + '%';
+        } else {
+          scoreChange = '';
+        }
+        var rankChange = entity.getRankChange();
+        if (rankChange){
+          if (rankChange > 0) {rankChange = '+' + rankChange;}
+        } else {
+          rankChange = '';
+        } 
+        
+        // top
         this.fields.title = entity.get('title');
         this.fields.subtitle = entity.get('explanation');
         this.fields.type_label = 'Type';
         this.fields.type = entity.getTypeTitle();
         this.fields.size_label = 'Size';
-        this.fields.size = entity.getStaffNo();        
+        this.fields.size = entity.getStaffNo();
+        // bottom
+        this.fields.score = entity.getScore(true) + '%';
+        this.fields.score_change = scoreChange;
+        this.fields.rank_title = 'Rank';
+        this.fields.rank = entity.getRank();
+        this.fields.rank_of = ' of ' + this.currentCount + ' Crown entities';
+        this.fields.rank_change = rankChange;
+        this.fields.summary = entity.get('summary');
       }
-      // type category report
-      else if (this.model.get('report') === "type") {       
-        var typeID = this.model.get('id');
-        var type = app.Types.findWhere({id:typeID});
-        this.fields.title = type.get('title');
-      }     
-      // size category report
-      else if (this.model.get('report') === "size") {       
-        var size = app.Sizes.bySize(this.model.get('id')).first();
-        this.fields.title = size.get('title');
-      }     
-      this.$el.html(this.template(this.fields));      
+      // type or size category report
+      else if (this.model.get('report') === "type" || this.model.get('report') === "size") {
+        var cat, recordsCat, resultsCat;
+        // type category report
+        if (this.model.get('report') === "type") {
+          var typeID = this.model.get('id');
+          cat = app.Types.findWhere({id:typeID});
+          recordsCat = app.Records.byType(typeID);
+          resultsCat = recordsCat.getResults();
+
+        }     
+        // size category report
+        else if (this.model.get('report') === "size") {
+          var sizeID = this.model.get('id');
+          cat = app.Sizes.bySize(sizeID).first();
+          recordsCat = app.Records.bySize(sizeID);
+          resultsCat = recordsCat.getResults();
+        }
+        // top
+        this.fields.title = cat.get('title');
+        // bottom
+        this.fields.score = resultsCat[this.currentYear].percentage + '%';
+        this.fields.rank_title = 'Number of ' + cat.get('title');
+        this.fields.rank = recordsCat.byYear(this.currentYear).length;
+        this.fields.rank_of = ' of ' + this.currentCount + ' Crown entities';
+        this.fields.summary = this.currentYearData.get('summaryoverview');
+      }
+      
+      this.$el.html(this.template(this.fields));
+      
+//      this.graphView.setElement(this.$('#graphview')).render();      
+//      this.scoreView.setElement(this.$('#scoreview')).render();      
+      
       return this;      
     },
+    resetFields: function(){
+      this.fields = {
+        year : this.currentYear,
+        title : '',
+        subtitle : '',
+        type_label : '',
+        type : '',
+        size_label : '',
+        size : '',
+        score_title : 'Overall compliance',
+        score : '',
+        score_change : '',
+        rank_title : '',
+        rank : '',
+        rank_of : '',
+        rank_change : '',
+        summary : '',
+      }
+    },                
     renderGraph: function() {
       
     },
@@ -578,17 +625,74 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       
     },
 template: _.template('\
-<h2><%= title %></h2>\
-<h4><%= subtitle %></h4>\
-<h2><%= year %></h2>\n\
+<div id="overview-top">\n\
+  <h2><%= title %></h2>\
+  <h4><%= subtitle %></h4>\
+  <h2><%= year %></h2>\n\
 <% if (type !== "") {%>\n\
-<div><span class="label"><%= type_label %>: </span><%= type %></div>\n\
+  <div><span class="label"><%= type_label %>: </span><%= type %></div>\n\
 <% } %>\n\
 <% if (size !== "") {%>\n\
-<div><span class="label"><%= size_label %>: </span><%= size %></div>\n\
+  <div><span class="label"><%= size_label %>: </span><%= size %></div>\n\
 <% } %>\n\
-<div class="legend"></div><div class="plot"></div>\n\
-    '),            
+</div><!-- #overview-top -->\n\
+<div id="overview-graph">\n\
+  <div class="legend"></div><div class="plot"></div>\n\
+</div><!-- #overview-graph -->\n\
+<div id="overview-bottom">\n\
+  <div class="accordion-top">\n\
+    <div class="left">\n\
+      <div class="score-panel">\n\
+        <div class="score-label">\n\
+          <%= score_title %>\n\
+        </div>\n\
+        <div class="score">\n\
+          <%= score %>\n\
+        </div>\n\
+        <div class="score-change">\n\
+          <%= score_change %>\n\
+        </div>\n\
+      </div>\n\
+    </div>\n\
+    <div class="right">\n\
+      <div class="averages-panel"></div>\n\
+    </div>\n\
+  </div>\n\
+  <div class="accordion-bottom">\n\
+    <div class="left">\n\
+      <div class="rank-panel">\n\
+        <div class="rank-label">\n\
+          <%= rank_title %>\n\
+        </div>\n\
+        <div class="rank">\n\
+          <%= rank %><%= rank_of %>\n\
+        </div>\n\
+        <div class="rank-change">\n\
+          <%= rank_change %>\n\
+        </div>\n\
+      </div>\n\
+      <div class="summary-panel">\n\
+          <%= summary %>\n\
+        </div>\n\
+      </div>\n\
+    </div>\n\
+    <div class="right">\n\
+      <div id="time-graph">\n\
+        <div class="legend"></div><div class="plot"></div>\n\
+      </div><!-- .time-graph -->\n\
+    </div>\n\
+  </div>\n\
+</div><!-- #overview-bottom -->\
+    '),      
+
+  });              
+  
+  views.OverviewGraph = Backbone.View.extend({
+    
+  });            
+  views.OverviewScore = Backbone.View.extend({
+    
+  });            
 //    attributes: { class: '' },
 //
 //    plotOptions: {
@@ -618,7 +722,7 @@ template: _.template('\
 //      var options = _.clone(this.plotOptions);
 //      var data= [];
 //      for ( i=0;i<this.collection.length;i++ ) {
-//          data.push([i, this.collection.models[i].getTotal() ]);
+//          data.push([i, this.collection.models[i].getScore() ]);
 //      }        
 //
 //      var dataset = [{ label : 'Entity Totals', data : data }];
@@ -628,7 +732,6 @@ template: _.template('\
 //
 //    }      
 
-  });  
     
   /*  
   views.Details
@@ -690,6 +793,12 @@ template: _.template('\
     toPDF : function (doc){
       
     }    
+  });
+  
+  views.Averages = Backbone.View.extend({    
+  });
+
+  views.AveragesTime = Backbone.View.extend({    
   });
   
   // Routers
