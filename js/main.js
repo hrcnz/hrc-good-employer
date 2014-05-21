@@ -762,8 +762,7 @@ template: _.template('\
         </div>\n\
       </div>\n\
       <div class="summary-panel">\n\
-          <%= summary %>\n\
-        </div>\n\
+        <%= summary %>\n\
       </div>\n\
     </div>\n\
     <div class="right">\n\
@@ -779,25 +778,58 @@ template: _.template('\
     initialize : function (options) {
       this.options = options || {};
     },
-    attributes: { class: '' },
-
+    events : {
+      "plotclick .plot" : "plotclick",
+      "plothover .plot" : "plothover",
+    },            
+    attributes: { class: 'overview-graph' },
     plotOptions: {
-      yaxis: {min:0,max:100},
-      xaxis: {show:false},
-      legend: { show: false },
+      yaxis: {
+        tickColor:'#000000',
+        color:'#000000',
+        min:0,
+        max:100, 
+        position:'right',
+        ticks:[[0,'0%'],[25,''],[50,'50%'],[75,''],[100,'100%']],
+        tickLength:10
+      },
+      xaxis: {
+        show:false,
+        min: -1
+      },
+      legend: { 
+        show: true,
+        container :'.legend-overview'
+      },
       grid: { 
         hoverable: true, 
         clickable: true, 
         autoHighlight: true, 
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        show: true,
+        aboveData: true,
+        margin: 0,
+        labelMargin: 10,
+        markings: [],
+        borderWidth: {top:0,right:1,bottom:1,left:0},
+        borderColor: '#000000',
+        color: '#000000',
+        minBorderMargin: 0,
       },
       series: {
-           bars: { show: true, fill: 0.7, barWidth: 0.8, align: 'center' }
-      }
+        bars: { 
+          show: true, 
+          fill: 1, 
+          barWidth: 0.8, 
+          align: 'center',
+          lineWidth: 0,          
+        },
+        highlightColor : '#ddd'
+      },
     },
 
     render: function() {
-      this.$el.html('<div class="legend"></div><div class="plot"></div>');
+      this.$el.html('<div class="plot"></div><div class="legend-overview"></div>');
       return this;
     },
             
@@ -818,13 +850,71 @@ template: _.template('\
           }
         }
       }
+            
+      options.xaxis.max = this.collection.length + 1;
 
-      var dataset = [{ label : 'Entity Totals', data : data },{data : dataActive}];
+      var dataset = [{ label : 'Entity Totals', data : data },{label : 'Selection', data : dataActive}];
 
       // Now, the chart can be drawn ...
       this.plot = $.plot( this.$('.plot'), dataset, options );
 
-    }             
+    },
+    plotclick : function(event, pos, item){
+      console.log('plotclick');
+      // there must be a better way
+      if ( item ) {        
+        app.App.navigate(
+            app.filter.get('year') 
+              + '/report/entity-' 
+              + this.collection.models[item.dataIndex].get('entityid'), 
+            {trigger: true});
+      }
+    },
+    plothover : function(event, pos, item){
+      console.log('plothover');
+      var ofsh, ofsw;
+ 
+      if ( this.hoverTip )
+         this.hoverTip.remove();
+      if(item) {
+          document.body.style.cursor = 'pointer';
+      } else {
+          document.body.style.cursor = 'default';
+      }
+      if (item) {
+
+        this.hoverTip = $(this.toolTipHTML( 
+                item.series.data[item.dataIndex][1], 
+                this.collection.models[item.dataIndex].get('title') ));
+
+        this.$('.plot').parent().append(this.hoverTip);
+
+        ofsh = this.hoverTip.outerHeight();
+        ofsw = this.hoverTip.outerWidth();
+
+        this.hoverTip.offset({
+          left: item.pageX - ofsw / 2,
+          top: item.pageY - ofsh - 5
+        });
+      }      
+    },
+    toolTipHTML :function( stat, series ) {
+
+      var html = '';
+
+      html += '<div class="tooltip">';
+      html += '<div>';
+
+      if ( series )
+         html += '<span class="series">'+series+'</span>';
+
+      html += '<span class="stats">'+stat+'%</span>';
+      html += '</div>';
+      html += '</div>';
+
+      return html;
+
+   }
   });               
 
     
@@ -899,25 +989,53 @@ template: _.template('\
     initialize : function (options) {
       this.options = options || {};
     },
-    attributes: { class: '' },
+    attributes: { class: 'time-graph'},
 
     plotOptions: {
-      yaxis: {min:0,max:100},
-      xaxis: {tickSize:1,tickDecimals:0},
-      legend: { show: true },
+      
+      yaxis: {
+        color:'#000000',
+        min:0,
+        max:100, 
+        position:'right',
+        ticks:[[0,'0%'],[25,''],[50,'50%'],[75,''],[100,'100%']],
+        tickLength:10
+      },
+      xaxis: {
+        color:'#000000',
+        tickSize:1,
+        tickDecimals:0,
+        tickLength:0
+      },
+      legend: { 
+        show: true
+      },
       grid: { 
         hoverable: true, 
         clickable: true, 
         autoHighlight: true, 
-        backgroundColor: '#ffffff'
-      },
+        backgroundColor: '#ffffff',
+        show: true,
+        aboveData: true,
+        margin: 0,
+        labelMargin: 10,
+        markings: [],
+        borderWidth: {top:0,right:1,bottom:1,left:0},
+        borderColor: '#000000',
+        color: '#000000',
+        minBorderMargin: 0,
+      },      
       series: {
-        lines: { show: true}
+        shadowSize : 0,
+        lines: { 
+          show: true,
+          
+        }
       }
     },
 
     render: function() {
-      this.$el.html('<div class="legend"></div><div class="plot"></div>');
+      this.$el.html('<div class="plot-wrapper-'+this.cid+'"><div class="plot"></div><div class="legend"></div></div>');
       return this;
     },
             
@@ -951,16 +1069,17 @@ template: _.template('\
         dataset.push({label : this.model.get('size_label'), data:data});
       }
       data = [];
-      //if size
+      //if entity
       if (!$.isEmptyObject(this.model.get('entity'))){
         _.each(this.model.get('entity'), function(year) { 
           data.push([year.year,year.percentage]);
         });
         dataset.push({label : this.model.get('entity_label'), data:data});
-      }      
+      }
+      options.legend.container = '.plot-wrapper-'+this.cid+' .legend';
+      options.xaxis.max =  Math.max.apply(Math, Object.keys(this.model.get('all')))+(1/12);
       // Now, the chart can be drawn ...
-      this.plot = $.plot( this.$('.plot'), dataset, options );
-
+      this.plot = $.plot( this.$('.plot'), dataset, options );      
     }    
   });
   
