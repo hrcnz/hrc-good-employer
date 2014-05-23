@@ -510,8 +510,8 @@
       this.maxYear = app.Years.getLast();
       this.title = 'Crown Entities and the Good Employer';
       this.subtitle = 'Annual Report Review '+this.minYear+' to '+this.maxYear;      
-      this.summary = 'The Human Rights Comission reviews and analyses the reporting of good employer obligations\
-by Crown entities and publishes its findings in an annual report "Crown entities and the Good Employer".\
+      this.summary = 'The Human Rights Comission reviews and analyses the reporting of good employer obligations \
+by Crown entities and publishes its findings in an annual report "Crown entities and the Good Employer". \
 Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown entities and monitor thier progress.'
     }
   });
@@ -532,11 +532,14 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
 <p><%= summary %></p>'),
     renderPdf: function (writer,attr){
       console.log('intro.renderpdf');
+      writer.current.y = 15;
       writer.addTitle(this.model.title);
-      writer.current.y += 6;
+      writer.current.y = 24;
       writer.addSubtitle(this.model.subtitle);
-      writer.current.y += 6;      
-      writer.addParagraph(this.model.summary,90);
+      writer.current.y = 32;      
+      writer.addText(this.model.summary,130);
+      writer.current.y = 54;
+      writer.addFullLine();
     },            
   });
   
@@ -794,7 +797,15 @@ template: _.template('\
     </div>\n\
   </div>\n\
 </div><!-- #overview-bottom -->\
-    '),      
+    '),
+    renderPdf: function (writer,attr){
+      console.log('overview.renderpdf');
+      writer.addTitle(this.model.title);
+      writer.current.y += 6;
+      writer.addSubtitle(this.model.subtitle);
+      writer.current.y += 6;      
+      writer.addParagraph(this.model.summary,90);
+    },            
 
   });              
   
@@ -885,6 +896,7 @@ template: _.template('\
     },
     plotclick : function(event, pos, item){
       console.log('plotclick');
+      event.preventDefault();
       // there must be a better way
       if ( item ) {        
         app.App.navigate(
@@ -1274,8 +1286,8 @@ template: _.template('\
       
       app.doc_writer = new models.DocWriter ();
       
-      app.viewsIntro.renderPdf(app.doc_writer,{h:60});
-      //app.viewsOverview.renderPdf(doc_writer,{h:150});
+      app.viewsIntro.renderPdf(app.doc_writer);      
+      //app.viewsOverview.renderPdf(app.doc_writer);
       //app.viewsDetails.renderPdf(doc_writer);
       
       app.doc_writer.output();
@@ -1286,21 +1298,26 @@ template: _.template('\
     // mm in pt: 2.8346456692913
     defaults : {
       textColor : {r:97,g:98,b:97},
-      a4        : {w:210,h:297}
+      a4        : {w:210,h:297},
+      fontSize  : 8,
+      fontStyle  : 'normal',
+      lineHeight:1.4
     },
     initialize : function(){
-      this.current = {x:15,y:20,page:1};
-      this.margins = {r:15,l:15,t:20,b:20};
-      this.doc = new jsPDF();
-      this.doc.setFontSize(8);
-
+      this.current = {x:15,y:15,page:1};
+      this.margins = {r:15,l:15,t:15,b:15};
+      this.widthInner = this.defaults.a4.w - this.margins.r - this.margins.l;   
+      this.doc = new jsPDF({lineHeight:this.defaults.lineHeight});
+      this.doc.setLineWidth(this.convert2mm(0.75));      
+      this.doc.setFontSize(this.defaults.fontSize);
       this.doc.setTextColor(this.defaults.textColor.r,this.defaults.textColor.g,this.defaults.textColor.b);
+      this.doc.setDrawColor(this.defaults.textColor.r,this.defaults.textColor.g,this.defaults.textColor.b);
     },
     convert2pt : function (mm){
-      return mm * 2.8346456692913;
+      return mm * this.doc.internal.scaleFactor;
     },
     convert2mm : function (pt){
-      return pt / 2.8346456692913;
+      return pt / this.doc.internal.scaleFactor;
     },
     output : function(){
        this.doc.output('datauri');
@@ -1309,32 +1326,43 @@ template: _.template('\
       x = typeof x !== "undefined" ? x : this.current.x;
       y = typeof y !== "undefined" ? y : this.current.y;
 
-      var fontSize = this.doc.internal.getFontSize();
-      this.doc.setFontStyle('bold');
-      this.doc.setFontSize(16);      
-      this.doc.text(x,y,s);      
-      this.doc.setFontSize(fontSize);
-      this.doc.setFontStyle('normal');
+      this.addText(s,this.innerWidth,'bold',17,x,y);
       
     },
     addSubtitle : function(s,x,y){
       x = typeof x !== "undefined" ? x : this.current.x;
-      y = typeof y !== "undefined" ? y : this.current.y;      
-      var fontSize = this.doc.internal.getFontSize();
-      this.doc.setFontSize(10);
-      this.doc.setFontStyle('bold');
-      this.doc.text(x,y,s);
-      this.doc.setFontSize(fontSize);      
-      this.doc.setFontStyle('normal');
+      y = typeof y !== "undefined" ? y : this.current.y;
+      this.addText(s,this.innerWidth,'bold',10,x,y);
     },
-    addParagraph : function(s,width_mm,x,y){
-      x = typeof x !== "undefined" ? x : this.current.x;
-      y = typeof y !== "undefined" ? y : this.current.y;      
+    addText : function(s,width_mm,style,size,x,y){
+      width_mm  = typeof width_mm !== "undefined" ? width_mm/1.3 : this.innerWidth/1.3;
+      style     = typeof style !== "undefined"    ? style : this.defaults.fontStyle;
+      size      = typeof size !== "undefined"     ? size : this.defaults.fontSize;
+      x         = typeof x !== "undefined"        ? x : this.current.x;      
+      y         = typeof y !== "undefined"        ? y + this.convert2mm(size) : this.current.y + this.convert2mm(size); 
+      //set style
+      this.doc.setFontSize(size);
+      this.doc.setFontStyle(style);
+      
       var lines = this.doc.splitTextToSize(s, this.convert2pt(width_mm));
       this.doc.text(x,y,lines);
+
+      //calculate vertical offset
+      this.current.y += lines.length * this.convert2mm(size) * this.defaults.lineHeight;
+      
+      //reset style
+      this.doc.setFontSize(this.defaults.fontSize);
+      this.doc.setFontStyle(this.defaults.fontStyle);
+      
+      
     },
+
     addImage : function(path){},
-    addFullLine : function(){},
+    addFullLine : function(x){
+      x = typeof x !== "undefined" ? x : this.current.x;
+      this.doc.line(x,this.current.y,x+this.widthInner,this.current.y);      
+      
+    },
     addReportTitle : function(s){},
     addRankTitle : function(s){},
     addLabel : function(s){},
