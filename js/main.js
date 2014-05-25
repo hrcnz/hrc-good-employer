@@ -14,19 +14,36 @@
         dark          :{r:97,g:98,b:97},
         light         :{r:210,g:210,b:210},
         all           :{r:115,g:28,b:31}, // red
-        all_light     :{r:203,g:227,b:225},        
+        all_light     :{r:210,g:164,b:166},        
         entity        :{r:36,g:173,b:162}, // turquoise
         entity_light  :{r:203,g:227,b:225},        
         type          :{r:163,g:185,b:64}, // green
-        type_light    :{r:203,g:227,b:225},        
+        type_light    :{r:220,g:227,b:179},        
         size          :{r:36,g:98,b:132}, // blue
-        size_light    :{r:203,g:227,b:225},
+        size_light    :{r:185,g:195,b:212},
       };
   
   /*
    * backbone models & collections
    */
-  models.Filter = Backbone.Model.extend({});
+  models.Config = Backbone.Model.extend({
+    color : function(is_light,is_hex){
+      is_light = typeof is_light !== 'undefined' ? is_light : false;
+      is_hex = typeof is_hex !== 'undefined' ? is_hex : false;
+      var report = this.get('report');
+      var rgb;
+      if (report === 'entities') {
+        rgb = is_light ? COLORS.all_light : COLORS.all;
+      } else if (report === 'entity') {        
+        rgb = is_light ? COLORS.entity_light : COLORS.entity;
+      } else if (report === 'type') {
+        rgb = is_light ? COLORS.type_light : COLORS.type;
+      } else if (report === 'size') {
+        rgb = is_light ? COLORS.size_light : COLORS.size;
+      }
+      return is_hex ? rgbToHex(rgb) : rgb;
+    },
+  });
   // YEARS
   //
   // Model:
@@ -403,13 +420,16 @@
   models.Averages = Backbone.Model.extend({
     defaults: {
       title : 'Average compliance of',
-      all : 0, 
-      type: 0, 
-      size: 0, 
+      all : -1, 
+      type: -1, 
+      size: -1, 
       all_label : 'All entities', 
       type_label: 'Same type', 
       size_label: 'Same size', 
-    },
+      all_color : rgbToHex(COLORS.all),
+      type_color : rgbToHex(COLORS.type),
+      size_color : rgbToHex(COLORS.size),         
+    },    
   }); 
   // AVERAGES TIME
   //   
@@ -481,18 +501,7 @@
     },
     renderPdf: function( event ){
         event.preventDefault();
-        renderPdf(this.color(this.model.get('report')));
-    },
-    color : function(report){
-      if (report === 'entities') {
-        return COLORS.all;
-      } else if (report === 'entity') {
-        return COLORS.entity      ;
-      } else if (report === 'type') {
-        return COLORS.type;      
-      } else if (report === 'size') {
-        return COLORS.size;
-      }
+        renderPdf();
     },
     template: _.template('\
 <button id="all" class="<%= allActive %>">All entities</button>\
@@ -568,11 +577,12 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
   
   models.Overview = Backbone.Model.extend({
     initialize: function(){
+      this.set('updated',0);
       this.set('resultsAll', app.Records.getResults());
       this.resetFields();
     },
     update : function(){
-      this.currentYear = parseInt(app.Filter.get('year'));
+      this.currentYear = parseInt(app.Config.get('year'));
       this.currentYearData = app.Years.byYear(this.currentYear).first();     
       this.currentCount = this.get('resultsAll')[this.currentYear].count;
       
@@ -586,7 +596,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       
       // depending on report 
       // all entities
-      if (app.Filter.get('report') === "entities" && app.Filter.get('id') === 'all') {                                   
+      if (app.Config.get('report') === "entities" && app.Config.get('id') === 'all') {                                   
         // top
         this.set({
           title: 'All entities',
@@ -595,7 +605,8 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
           score : this.get('resultsAll')[this.currentYear].percentage + '%',
           rank_label : 'Number of Crown entities',
           rank : this.currentCount,
-          summary : this.currentYearData.get('summaryoverview'),          
+          summary : this.currentYearData.get('summaryoverview'),
+          modelAverages : new models.Averages({}),
           modelAveragesTime : new models.AveragesTime({
             all: this.get('resultsAll')
           }),
@@ -604,8 +615,8 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       } 
       
       // individual entity
-      else if (app.Filter.get('report') === "entity") {
-        var entityID = parseInt(app.Filter.get('id'));
+      else if (app.Config.get('report') === "entity") {
+        var entityID = parseInt(app.Config.get('id'));
         var entityRecords = app.Records.byEntity(entityID);
         this.set('graphCollectionActive', entityRecords.byYear(this.currentYear));
         var entity = this.get('graphCollectionActive').first();
@@ -662,12 +673,12 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       }
       
       // type or size category report
-      else if (app.Filter.get('report') === "type" || app.Filter.get('report') === "size") {
+      else if (app.Config.get('report') === "type" || app.Config.get('report') === "size") {
         var cat, recordsCat, resultsCat;
         // type category report
-        if (app.Filter.get('report') === "type") {          
+        if (app.Config.get('report') === "type") {          
           
-          var typeID = app.Filter.get('id');
+          var typeID = app.Config.get('id');
           cat = app.Types.findWhere({id:typeID});
           recordsCat = app.Records.byType(typeID);
           resultsCat = recordsCat.getResults(); 
@@ -683,8 +694,8 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
           });
         } 
         // size category report
-        else if (app.Filter.get('report') === "size") {
-          var sizeID = app.Filter.get('id');
+        else if (app.Config.get('report') === "size") {
+          var sizeID = app.Config.get('id');
           cat = app.Sizes.bySize(sizeID).first();
           recordsCat = app.Records.bySize(sizeID);
           resultsCat = recordsCat.getResults();
@@ -711,8 +722,11 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
           rank_of : ' of ' + this.currentCount + ' Crown entities',
           summary : this.currentYearData.get('summaryoverview'),
         });
+        
       }      
       
+      // triggers the view rendering
+      this.set('updated',app.Config.get('id'));
     },
     resetFields: function(){      
       this.set({
@@ -741,7 +755,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
     initialize: function () {
         this.subviews = {};
         this.render();
-        this.listenTo(this.model, 'change', this.render);
+        this.listenTo(this.model, 'change:updated', this.render);        
     },    
     render: function() {
       
@@ -751,16 +765,14 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       // subview overview graph
       this.subviews.graphView = new views.OverviewGraph({ 
         collection        : this.model.get('graphCollection'),
-        collectionActive  : this.model.get('graphCollectionActive')
+        collectionActive  : this.model.get('graphCollectionActive'),
       });
       $('#overview-graph').append( this.subviews.graphView.render().el );
       this.subviews.graphView.renderGraph();
       
       // subview averages 
-      if (! (app.Filter.get('report') === "entities" && app.Filter.get('id') === 'all')) {          
-        this.subviews.averagesView = new views.Averages({model:this.model.get('modelAverages')});
-        $('.averages-panel').append( this.subviews.averagesView.render().el );      
-      }
+      this.subviews.averagesView = new views.Averages({model:this.model.get('modelAverages')});
+      $('.averages-panel').append( this.subviews.averagesView.render().el );      
       
       // subview averages graph
       this.subviews.averagesGraphView = new views.AveragesTimeGraph({model:this.model.get('modelAveragesTime')});
@@ -825,29 +837,32 @@ template: _.template('\
 </div><!-- #overview-bottom -->\
     '),
     renderPdf: function (writer,attr){
-      console.log('intro.renderpdf');
+      var highlight = app.Config.color();
+      
+      console.log('overview.renderpdf');
 
       writer.addText(this.model.get('title'),'overview_title');
       writer.addText(this.model.get('subtitle'),'overview_subtitle',{color : COLORS.light});     
-      writer.addText(this.model.get('year').toString(),'overview_year',{color : writer.get('highlight')});
+      writer.addText(this.model.get('year').toString(),'overview_year',{color : highlight});
       writer.addText(this.model.get('type_label'),'overview_type_label');
       writer.addText(this.model.get('type'),'overview_type');
       writer.addText(this.model.get('size_label'),'overview_size_label');
       writer.addText(this.model.get('size').toString(),'overview_size');
       writer.addText(this.model.get('score_label'),'overview_score_label');
-      writer.addText(this.model.get('score').toString(),'overview_score',{color : writer.get('highlight')});
-      writer.addText(this.model.get('score_diff'),'overview_score_diff',{color : writer.get('highlight')});
+      writer.addText(this.model.get('score').toString(),'overview_score',{color : highlight});
+      writer.addText(this.model.get('score_diff'),'overview_score_diff',{color : highlight});
       writer.addLine('overview_score_line');
       writer.addText(this.model.get('rank_label'),'overview_rank_label');
-      writer.addText(this.model.get('rank').toString(),'overview_rank',{color : writer.get('highlight')});
-      writer.addText(this.model.get('rank_of'),'overview_rank_of',{color : writer.get('highlight')});
-      writer.addText(this.model.get('rank_diff'),'overview_rank_diff',{color : writer.get('highlight')});
+      writer.addText(this.model.get('rank').toString(),'overview_rank',{color : highlight});
+      writer.addText(this.model.get('rank_of'),'overview_rank_of',{color : highlight});
+      writer.addText(this.model.get('rank_diff').toString(),'overview_rank_diff',{color : highlight});
       writer.addLine('overview_rank_line');
+      writer.addText(this.model.get('summary'),'overview_summary');            
       
+      //print subviews
       this.subviews.graphView.renderPdf(writer);
-      this.subviews.averagesGraphView.renderPdf(writer);
-      
-      writer.addText(this.model.get('summary'),'overview_summary');
+      this.subviews.averagesGraphView.renderPdf(writer,'overview_averages_graph');
+      this.subviews.averagesView.renderPdf(writer,'overview_averages');
 
     },             
   });              
@@ -862,6 +877,7 @@ template: _.template('\
     },            
     attributes: { class: 'overview-graph' },
     plotOptions: {
+      canvas: true,
       yaxis: {
         tickColor:'#000000',
         color:'#000000',
@@ -876,7 +892,7 @@ template: _.template('\
         min: -1
       },
       legend: { 
-        show: true,
+        show: false,
         container :'.legend-overview'
       },
       grid: { 
@@ -902,7 +918,6 @@ template: _.template('\
           align: 'center',
           lineWidth: 0,          
         },
-        highlightColor : '#ddd'
       },
     },
 
@@ -914,6 +929,7 @@ template: _.template('\
     renderGraph: function() {
 
       var options = _.clone(this.plotOptions);
+      options.series.highlightColor = rgbToHex(COLORS.all);//app.Config.color(false,true);
       var data = [];
       var dataActive = [];
       for ( var i=0;i<this.collection.length;i++ ) {
@@ -931,7 +947,7 @@ template: _.template('\
             
       options.xaxis.max = this.collection.length + 1;
 
-      var dataset = [{ label : 'Entity Totals', data : data },{label : 'Selection', data : dataActive}];
+      var dataset = [{ data : data, bars : {fillColor:app.Config.color(true,true)} },{ data : dataActive, bars : {fillColor:app.Config.color(false,true)}}];
 
       // Now, the chart can be drawn ...
       this.plot = $.plot( this.$('.plot'), dataset, options );
@@ -947,7 +963,7 @@ template: _.template('\
       // there must be a better way
       if ( item ) {        
         app.App.navigate(
-            app.Filter.get('year') 
+            app.Config.get('year') 
               + '/report/entity-' 
               + this.collection.models[item.dataIndex].get('entityid'), 
             {trigger: true});
@@ -999,37 +1015,65 @@ template: _.template('\
 
    }
   });               
-  
+
   views.Averages = Backbone.View.extend({
     initialize : function (options) {
       this.options = options || {};
     },
     render : function(){
       console.log('averages.render');
-      this.$el.html(this.template(this.model.attributes));
+      if (this.model.get('all') > -1 || this.model.get('type') > -1 || this.model.get('size') > -1) {
+        this.$el.html(this.template(this.model.attributes));
+      }
       return this;      
     },            
-    renderPdf: function (doc){
+    renderPdf: function(writer,item_key,attr){      
+      var offset = {x:0,y:0};
+      var label_margin = {top:3,right:15};
       
+      // add subview title
+      offset.y += writer.addText(this.model.get('title'),item_key);
+      
+      // get item to calculate offsets
+      var item = writer.item(item_key,attr);           
+      
+      if(this.model.get('type')){
+        writer.addText(this.model.get('type_label'),'default',{x:item.x+offset.x,y:item.y+offset.y + label_margin.top});
+        writer.addText(this.model.get('type')+'%','default',{x:item.x+offset.x + label_margin.right,y:item.y+offset.y + label_margin.top,style:'bold',color:COLORS.type});
+        offset.x += writer.addAverageBar(this.model.get('type'),{x:item.x+offset.x,y:item.y+offset.y,color:COLORS.type});        
+      }
+      if(this.model.get('size')){
+        writer.addText(this.model.get('size_label'),'default',{x:item.x+offset.x,y:item.y+offset.y + label_margin.top});
+        writer.addText(this.model.get('size')+'%','default',{x:item.x+offset.x + label_margin.right,y:item.y+offset.y + label_margin.top,style:'bold',color:COLORS.size});        
+        offset.x += writer.addAverageBar(this.model.get('size'),{x:item.x+offset.x,y:item.y+offset.y,color:COLORS.size});
+      }
+      if(this.model.get('all')){
+        writer.addText(this.model.get('all_label'),'default',{x:item.x+offset.x,y:item.y+offset.y + label_margin.top});
+        writer.addText(this.model.get('all')+'%','default',{x:item.x+offset.x + label_margin.right,y:item.y+offset.y + label_margin.top,style:'bold',color:COLORS.all});        
+        offset.x += writer.addAverageBar(this.model.get('all'),{x:item.x+offset.x,y:item.y+offset.y,color:COLORS.all});
+      }
+      offset.y += 10;
+      
+      writer.addLine('half_line',{y:item.y+offset.y});
     },
     template: _.template('\
     <div class="averages">\
       <div class="averages-title"><h4><%=title%></h4></div>\
       <% if (type !== 0) {%>\
       <div class="average-type" style="background:#ddd;position:relative;width:100px;display:block;height:10px">\
-        <span style="width:<%=type%>%;position:absolute;left:0;height:10px;background:red;display:block"></span>\
+        <span style="width:<%=type%>%;position:absolute;left:0;height:10px;background:<%=type_color%>;display:block"></span>\
       </div>\
       <div><%=type_label%> <%=type%>%</div>\
       <% }%>\
       <% if (size !== 0) {%>\
       <div class="average-size" style="background:#ddd;position:relative;width:100px;display:block;height:10px">\
-        <span style="width:<%=size%>%;position:absolute;left:0;height:10px;background:blue;display:block"></span>\
+        <span style="width:<%=size%>%;position:absolute;left:0;height:10px;background:<%=size_color%>;display:block"></span>\
       </div>\
       <div><%=size_label%> <%=size%>%</div>\
       <% }%>\
       <% if (all !== 0) {%>\
       <div class="average-all" style="background:#ddd;position:relative;width:100px;display:block;height:10px">\
-        <span style="width:<%=all%>%;position:absolute;left:0;height:10px;background:yellow;display:block"></span>\
+        <span style="width:<%=all%>%;position:absolute;left:0;height:10px;background:<%=all_color%>;display:block"></span>\
       </div>\
       <div><%=all_label%> <%=all%>%</div>\
       <% }%>\
@@ -1044,7 +1088,7 @@ template: _.template('\
     attributes: { class: 'time-graph'},
 
     plotOptions: {
-      
+      canvas: true,
       yaxis: {
         color:'#000000',
         min:0,
@@ -1097,20 +1141,24 @@ template: _.template('\
       
       var data = [];
       var dataset = [];
-      
+      options.colors = [];      
       //all entities
       _.each(this.model.get('all'), function(year) { 
         data.push([year.year,year.percentage]);
       });
       dataset.push({label : this.model.get('all_label'),data:data});
+      options.colors.push(rgbToHex(COLORS.all));
       
       data = [];
+
       //if type
       if (!$.isEmptyObject(this.model.get('type'))){
         _.each(this.model.get('type'), function(year) { 
           data.push([year.year,year.percentage]);
         });
         dataset.push({label : this.model.get('type_label'),data:data});
+        options.colors.push(rgbToHex(COLORS.type));
+
       }
       data = [];
       //if size
@@ -1119,6 +1167,8 @@ template: _.template('\
           data.push([year.year,year.percentage]);
         });
         dataset.push({label : this.model.get('size_label'), data:data});
+        options.colors.push(rgbToHex(COLORS.size));
+
       }
       data = [];
       //if entity
@@ -1127,14 +1177,15 @@ template: _.template('\
           data.push([year.year,year.percentage]);
         });
         dataset.push({label : this.model.get('entity_label'), data:data});
+        options.colors.push(rgbToHex(COLORS.entity));
       }
       options.legend.container = '.plot-wrapper-'+this.cid+' .legend';
       options.xaxis.max =  Math.max.apply(Math, Object.keys(this.model.get('all')))+(1/12);
       // Now, the chart can be drawn ...
       this.plot = $.plot( this.$('.plot'), dataset, options );      
     },
-    renderPdf: function(writer){
-        writer.addPlot(this.plot.getCanvas(),'overview_averages_graph');
+    renderPdf: function(writer,item_key,attr){
+        writer.addPlot(this.plot.getCanvas(),item_key,attr);
     },             
   });
     
@@ -1233,21 +1284,20 @@ template: _.template('\
         
         // Parse hash
         var filter = route.split('-');        
-        app.Filter    = app.Filter || new models.Filter();
+        app.Config    = app.Config || new models.Config();
         app.Overview  = app.Overview || new models.Overview();
         //default to all entities
         if ($.inArray(filter[0],['entities','entity','type','size']) === -1 || filter[1] === 'none' || filter[1] === '') {
           this.navigate(year + '/report/entities-all', {trigger: true});
         } else {
-          app.Filter.set({year:year,report:filter[0],id:filter[1]});
+          app.Config.set({year:year,report:filter[0],id:filter[1]});
         }
         // this should better happen on filter change
         app.Overview.update();
-        app.Overview.set({test:'test'});
         
         // load views if not already loaded
         app.viewsIntro    = app.viewsIntro     || new views.Intro({ el: $("#intro"), model:new models.Intro() });
-        app.viewsTools    = app.viewsTools     || new views.Tools({ el: $("#tools"), model:app.Filter });                
+        app.viewsTools    = app.viewsTools     || new views.Tools({ el: $("#tools"), model:app.Config });                
         app.viewsOverview = app.viewsOverview  || new views.Overview({ el: $("#overview"), model: app.Overview});
 
 //        // Load the details view
@@ -1318,9 +1368,9 @@ template: _.template('\
   });  
 
   
-  function renderPdf(highlightColor) {   
+  function renderPdf() {   
       
-      app.doc_writer = new models.DocWriter ({highlight:highlightColor});
+      app.doc_writer = new models.DocWriter ();
       
       app.viewsIntro.renderPdf(app.doc_writer);      
       app.viewsOverview.renderPdf(app.doc_writer);
@@ -1332,19 +1382,29 @@ template: _.template('\
   
   models.DocWriter = Backbone.Model.extend({
     initialize : function(){
-      this.doc = new jsPDF({lineHeight:this.defaults.lineHeight});
-      this.doc.setLineWidth(this.convert2mm(0.75));      
+      this.doc = new jsPDF({lineHeight:this.defaults.lineHeight});           
       this.doc.setFontSize(this.defaults.elements.default.size);
     },     
     defaults : {
       lineHeight:1.4,
+      offsets  :{
+        averages : {single:28,group:100},      
+        criteria : {
+          geref:{p:1,y:0,x:0},
+          eeoref:{p:1,y:0,x:110},
+          GE:{p:2,y:0,x:0},
+          WP:{p:2,y:0,x:110},          
+          review:{p:2,y:200,x:0},
+          participation:{p:200,y:0,x:110},
+        }
+      },
       elements  : { 
-        default               : {y:15,x:15,w:180,h:0,size:8,style:'normal',color:COLORS.dark},        
+        default               : {y:15,x:15,w:180,h:0,size:8,style:'normal',margin:{top:0,bottom:2,right:0,left:0},color:COLORS.dark},        
         intro_title           : {y:15,size:17,style:'bold'},
         intro_subtitle        : {y:24,size:10,style:'bold'},
         intro_summary         : {y:32,w:130},
         intro_logo            : {y:13,x:163,w:32,h:35},
-        intro_line            : {y:54,color:COLORS.dark},
+        intro_line            : {y:54,h:0.75,color:COLORS.dark},
         //----------------
         //----------------
         overview_title        : {y:63,w:130,size:16},
@@ -1359,18 +1419,23 @@ template: _.template('\
         overview_score        : {y:103,size:40,style:'bold'},
         overview_score_trend  : {y:103,x:53},
         overview_score_diff   : {y:112,x:53},
-        overview_score_line   : {y:119,w:44,color:COLORS.light},
+        overview_score_line   : {y:119,w:44,h:0.75,color:COLORS.light},
         //----------------
-        overview_rank_label   : {y:124},
+        overview_rank_label   : {y:124,style:'bold'},
         overview_rank         : {y:128,size:23,style:'bold'},
         overview_rank_of      : {y:128,x:25},
         overview_rank_trend   : {y:124,x:53},
         overview_rank_diff    : {y:133,x:53},
-        overview_rank_line    : {y:139,w:44,color:COLORS.light},
+        overview_rank_line    : {y:139,w:44,h:0.75,color:COLORS.light},
         //----------------
-        overview_graph        : {y:97,x:63,w:132,h:40},
+        overview_graph        : {y:97,x:63,w:132,h:40},        
         overview_averages_graph:{y:145,x:110,w:85,h:30},
-        overview_summary      : {y:168,w:85}
+        averages_graph        : {w:85,h:30},
+        overview_averages     : {y:145,w:85,style:'bold'},
+        overview_summary      : {y:168,w:85},
+        //----------------
+        average_line          : {w:22,h:5,margin:{right:5},color:COLORS.light},        
+        half_line             : {w:85,h:0.75,color:COLORS.light},
       },
       images : {
         intro_logo : {
@@ -1384,7 +1449,7 @@ template: _.template('\
     item : function (key,attr) {
       attr = typeof attr !== 'undefined' ? attr : {};
       
-      var item = this.defaults.elements[key];
+      var item = $.extend({},this.defaults.elements[key]);
       var def = $.extend({},this.defaults.elements.default);
       item = $.extend(item,attr);      
       return $.extend(def,item);
@@ -1401,6 +1466,7 @@ template: _.template('\
        this.doc.output('datauri');
     },
     addText : function(s,item_key,item_attr){
+      item_key = typeof item_key !== 'undefined' ? item_key : 'default';
       var item = this.item(item_key,item_attr);      
       //set style
       this.doc.setFontSize(item.size);
@@ -1412,11 +1478,12 @@ template: _.template('\
       this.doc.text(item.x,item.y + this.convert2mm(item.size),lines);            
       
       // return the vertical offset
-      return lines.length * this.convert2mm(item.size) * this.defaults.lineHeight;
+      return lines.length * this.convert2mm(item.size) * this.defaults.lineHeight + item.margin.bottom;
 
     },
-    addLine : function(item_key){
-      var item = this.item(item_key);
+    addLine : function(item_key,item_attr){
+      var item = this.item(item_key,item_attr); 
+      this.doc.setLineWidth(this.convert2mm(item.h)); 
       this.doc.setDrawColor(item.color.r,item.color.g,item.color.b);
       this.doc.line(item.x,item.y,item.x+item.w,item.y);
     },
@@ -1439,7 +1506,6 @@ template: _.template('\
     addPlot : function(srcCanvas,item_key,item_attr){
       var item = this.item(item_key,item_attr);      
       
-//      var srcCanvas = plot.getCanvas();
       var destinationCanvas = document.createElement("canvas");
       destinationCanvas.width = srcCanvas.width;
       destinationCanvas.height = srcCanvas.height;
@@ -1463,14 +1529,30 @@ template: _.template('\
         item.h);
     },
             
-    addReportTitle : function(s){},
-    addRankTitle : function(s){},
-    addLabel : function(s){},
+    addAverageBar : function(value,item_attr){
+      //draw base bar
+      
+      this.addLine('average_line',{x:item_attr.x,y:item_attr.y});      
+      // need to get base line width
+      var base = this.item('average_line');
+      this.addLine('average_line',{x:item_attr.x,y:item_attr.y,w:base.w*value/100,color:item_attr.color});
+      //return horizontal offset
+      return base.w + base.margin.right;
+      
+    },
+    
     addCriteriaTitle : function(s){},    
 
   });
   
 
-  
+  function componentToHex(c) {
+    var hex = c.toString(16);
+    return hex.length === 1 ? "0" + hex : hex;
+}
+
+  function rgbToHex(rgb) {
+      return "#" + componentToHex(rgb.r) + componentToHex(rgb.g) + componentToHex(rgb.b);
+  }  
 //});
 
