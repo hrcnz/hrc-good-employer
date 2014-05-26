@@ -68,6 +68,12 @@
       });
       return new models.Years(filtered);            
     },
+    byYears : function(years){
+      var filtered = this.filter(function(year_model) {
+        return ($.inArray(year_model.get("year").toString(),years) > -1);
+      });
+      return new models.Years(filtered);
+    },
     // allow sorting by score and alphabetically       
     comparator: function(a, b) {      
         a = a.get(this.sort_key);
@@ -96,7 +102,8 @@
   // TYPES CATEGORISATION
   //   
   // Defines type categories, based on sheet 'Types' of the google spreadsheet 
-  models.Type = Backbone.Model.extend({});  
+  models.Type = Backbone.Model.extend({
+  });  
   models.Types = Backbone.Collection.extend({        
     model: models.Type
   });
@@ -245,12 +252,14 @@
       }
     },  
     getStaffNo : function(){     
-      return (this.get('staffno') !== '') ? this.get('staffno') : 'Not specified';
+      return (this.get('staffno') !== '') ? this.get('staffno') + ' people': 'Not specified';
     },
     getTypeTitle : function(){
       return (this.typeID !== '') ? app.Types.findWhere({id : this.typeID}).get('title') : 'Not specified';      
     },
-    
+    getStaffTitle : function(){
+      return (this.get('staffno') !== '') ? app.Sizes.bySize(this.get('staffno')).first().get('title') : 'Not specified';      
+    }
   });
   // the record collection - holds all records for all entities and years
   models.Records = Backbone.Collection.extend({        
@@ -461,7 +470,9 @@
         entities        : app.Records.byYear(parseInt(this.model.get('year'))).models,
         types           : app.Types.models,
         sizes           : app.Sizes.models,
-        years           : app.Years.active().models,        
+        years           : (this.model.get('report') === "entity") 
+? app.Years.active().byYears(Object.keys(app.Records.byEntity(parseInt(this.model.get('id'))).getResults())).models
+: app.Years.active().models,        
         allActive       : (this.model.get('report') === "entities" && this.model.get('id') === 'all') ? 'active' : '',
         entityActiveID  : (this.model.get('report') === "entity") ? this.model.get('id') : '',        
         typeActiveID    : (this.model.get('report') === "type") ? this.model.get('id') : '',
@@ -618,58 +629,66 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       else if (app.Config.get('report') === "entity") {
         var entityID = parseInt(app.Config.get('id'));
         var entityRecords = app.Records.byEntity(entityID);
-        this.set('graphCollectionActive', entityRecords.byYear(this.currentYear));
-        var entity = this.get('graphCollectionActive').first();
-                
-        var resultsType = app.Records.byType(entity.typeID).getResults();
-        var resultsSize = app.Records.bySize(entity.getStaffNo()).getResults();
-        
-        //prepare models for averages views
-        this.set({
-          modelAverages : new models.Averages({
-            all: this.get('resultsAll')[this.currentYear].percentage,
-            type:resultsType[this.currentYear].percentage,
-            size:resultsSize[this.currentYear].percentage
-          }),
-          modelAveragesTime : new models.AveragesTime({
-            all: this.get('resultsAll'),
-            type:resultsType,
-            size:resultsSize,
-            entity:entityRecords.getResults()
-          })
-        });        
-        
-        var scoreChange = entity.getScoreChange(true);
-        if (scoreChange){
-          if (scoreChange > 0) {scoreChange = '+' + scoreChange;}
-          scoreChange = scoreChange + '%';
+        var entitiesByYear = entityRecords.byYear(this.currentYear);
+        if (entitiesByYear.length === 0) {
+          
         } else {
-          scoreChange = '';
+          this.set('graphCollectionActive', entityRecords.byYear(this.currentYear));
+          var entity = this.get('graphCollectionActive').first();
+
+          var resultsType = app.Records.byType(entity.typeID).getResults();
+          var resultsSize = app.Records.bySize(entity.getStaffNo()).getResults();
+
+          //prepare models for averages views
+          this.set({
+            modelAverages : new models.Averages({
+              all: this.get('resultsAll')[this.currentYear].percentage,
+              type:resultsType[this.currentYear].percentage,
+              size:resultsSize[this.currentYear].percentage
+            }),
+            modelAveragesTime : new models.AveragesTime({
+              all: this.get('resultsAll'),
+              type:resultsType,
+              size:resultsSize,
+              entity:entityRecords.getResults(), 
+              type_label  : 'Same type: ' + entity.getTypeTitle(), 
+              size_label  : 'Same Size: ' + entity.getStaffTitle(), 
+              entity_label: entity.get('title'),        
+            })
+          });        
+
+          var scoreChange = entity.getScoreChange(true);
+          if (scoreChange){
+            if (scoreChange > 0) {scoreChange = '+' + scoreChange;}
+            scoreChange = scoreChange + '%';
+          } else {
+            scoreChange = '';
+          }
+          var rankChange = entity.getRankChange();
+          if (rankChange){
+            if (rankChange > 0) {rankChange = '+' + rankChange;}
+          } else {
+            rankChange = '';
+          } 
+
+          // top
+          this.set({
+            title : entity.get('title'),
+            subtitle : entity.get('explanation'),          
+            type_label : 'Type',
+            type : entity.getTypeTitle(),
+            size_label : 'Size',
+            size : entity.getStaffNo(),
+            // bottom
+            score : entity.getScore(true) + '%',
+            score_diff : scoreChange,
+            rank_label : 'Rank',
+            rank : entity.getRank(),
+            rank_of : ' of ' + this.currentCount + ' Crown entities',
+            rank_diff : rankChange,
+            summary : entity.get('summaryoverview')
+          });
         }
-        var rankChange = entity.getRankChange();
-        if (rankChange){
-          if (rankChange > 0) {rankChange = '+' + rankChange;}
-        } else {
-          rankChange = '';
-        } 
-        
-        // top
-        this.set({
-          title : entity.get('title'),
-          subtitle : entity.get('explanation'),          
-          type_label : 'Type',
-          type : entity.getTypeTitle(),
-          size_label : 'Size',
-          size : entity.getStaffNo(),
-          // bottom
-          score : entity.getScore(true) + '%',
-          score_diff : scoreChange,
-          rank_label : 'Rank',
-          rank : entity.getRank(),
-          rank_of : ' of ' + this.currentCount + ' Crown entities',
-          rank_diff : rankChange,
-          summary : entity.get('summaryoverview')
-        });
       }
       
       // type or size category report
@@ -684,12 +703,14 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
           resultsCat = recordsCat.getResults(); 
           //prepare models for averages views
           this.set({
+            title : 'Type: '+cat.get('title'),
             modelAverages : new models.Averages({
               all: this.get('resultsAll')[this.currentYear].percentage,
             }),
             modelAveragesTime : new models.AveragesTime({
               all: this.get('resultsAll'),
               type:resultsCat,
+              type_label:cat.get('title')
             })
           });
         } 
@@ -702,19 +723,19 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
           
           //prepare models for averages views
           this.set({
+            title : 'Staff size: '+cat.get('title'),            
             modelAverages : new models.Averages({
               all: this.get('resultsAll')[this.currentYear].percentage,
             }),
             modelAveragesTime : new models.AveragesTime({
               all: this.get('resultsAll'),
               size:resultsCat,
+              size_label:(cat.get('title'))
             })
           });
         }
         this.set({
-          graphCollectionActive : recordsCat.byYear(this.currentYear),        
-          // top
-          title : cat.get('title'),
+          graphCollectionActive : recordsCat.byYear(this.currentYear),                 
           // bottom
           score : resultsCat[this.currentYear].percentage + '%',
           rank_label : 'Number of ' + cat.get('title'),
@@ -726,7 +747,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       }      
       
       // triggers the view rendering
-      this.set('updated',app.Config.get('id'));
+      this.set('updated',app.Config.get('id')+app.Config.get('year'));
     },
     resetFields: function(){      
       this.set({
@@ -1059,19 +1080,19 @@ template: _.template('\
     template: _.template('\
     <div class="averages">\
       <div class="averages-title"><h4><%=title%></h4></div>\
-      <% if (type !== 0) {%>\
+      <% if (type > -1) {%>\
       <div class="average-type" style="background:#ddd;position:relative;width:100px;display:block;height:10px">\
         <span style="width:<%=type%>%;position:absolute;left:0;height:10px;background:<%=type_color%>;display:block"></span>\
       </div>\
       <div><%=type_label%> <%=type%>%</div>\
       <% }%>\
-      <% if (size !== 0) {%>\
+      <% if (size > -1) {%>\
       <div class="average-size" style="background:#ddd;position:relative;width:100px;display:block;height:10px">\
         <span style="width:<%=size%>%;position:absolute;left:0;height:10px;background:<%=size_color%>;display:block"></span>\
       </div>\
       <div><%=size_label%> <%=size%>%</div>\
       <% }%>\
-      <% if (all !== 0) {%>\
+      <% if (all > -1) {%>\
       <div class="average-all" style="background:#ddd;position:relative;width:100px;display:block;height:10px">\
         <span style="width:<%=all%>%;position:absolute;left:0;height:10px;background:<%=all_color%>;display:block"></span>\
       </div>\
@@ -1104,7 +1125,7 @@ template: _.template('\
         tickLength:0
       },
       legend: { 
-        show: true
+        show: false
       },
       grid: { 
         hoverable: true, 
@@ -1123,10 +1144,6 @@ template: _.template('\
       },      
       series: {
         shadowSize : 0,
-        lines: { 
-          show: true,
-          
-        }
       }
     },
 
@@ -1134,7 +1151,30 @@ template: _.template('\
       this.$el.html('<div class="plot-wrapper-'+this.cid+'"><div class="plot"></div><div class="legend"></div></div>');
       return this;
     },
-            
+    lineOptions:function(report,options){
+      if (report === 'all') { 
+        if(app.Config.get('report') === 'entities') {
+          return $.extend(options,{lines:{show:true,lineWidth:2}});
+        } else {
+          return $.extend(options,{dashes:{show:true,lineWidth:1.5,dashLength:2}});
+        }
+      }
+      else if (report === 'type') { 
+        if(app.Config.get('report') === 'type') {
+          return $.extend(options,{lines:{show:true,lineWidth:2}});
+        } else {
+          return $.extend(options,{dashes:{show:true,lineWidth:1.5,dashLength:5}});
+        }
+      }
+      else if (report === 'size') { 
+        if(app.Config.get('report') === 'size') {
+          return $.extend(options,{lines:{show:true,lineWidth:2}});
+        } else {
+          return $.extend(options,{dashes:{show:true,lineWidth:1.5,dashLength:10}});
+        }
+      }
+      
+    },       
     renderGraph: function() {
 
       var options = _.clone(this.plotOptions);
@@ -1146,7 +1186,11 @@ template: _.template('\
       _.each(this.model.get('all'), function(year) { 
         data.push([year.year,year.percentage]);
       });
-      dataset.push({label : this.model.get('all_label'),data:data});
+      dataset.push(
+        this.lineOptions('all',{
+//          label : this.model.get('all_label'),
+          data  : data
+      }));
       options.colors.push(rgbToHex(COLORS.all));
       
       data = [];
@@ -1156,7 +1200,10 @@ template: _.template('\
         _.each(this.model.get('type'), function(year) { 
           data.push([year.year,year.percentage]);
         });
-        dataset.push({label : this.model.get('type_label'),data:data});
+        dataset.push(this.lineOptions('type',{
+//          label : this.model.get('type_label'),
+          data  : data
+        }));
         options.colors.push(rgbToHex(COLORS.type));
 
       }
@@ -1166,7 +1213,10 @@ template: _.template('\
         _.each(this.model.get('size'), function(year) { 
           data.push([year.year,year.percentage]);
         });
-        dataset.push({label : this.model.get('size_label'), data:data});
+        dataset.push(this.lineOptions('size',{
+//          label : this.model.get('size_label'),
+          data  : data
+        }));
         options.colors.push(rgbToHex(COLORS.size));
 
       }
@@ -1176,17 +1226,46 @@ template: _.template('\
         _.each(this.model.get('entity'), function(year) { 
           data.push([year.year,year.percentage]);
         });
-        dataset.push({label : this.model.get('entity_label'), data:data});
+        dataset.push({data:data});
         options.colors.push(rgbToHex(COLORS.entity));
       }
-      options.legend.container = '.plot-wrapper-'+this.cid+' .legend';
+//      options.legend.container = '.plot-wrapper-'+this.cid+' .legend';
       options.xaxis.max =  Math.max.apply(Math, Object.keys(this.model.get('all')))+(1/12);
       // Now, the chart can be drawn ...
-      this.plot = $.plot( this.$('.plot'), dataset, options );      
+      this.plot = $.plot( this.$('.plot'), dataset, options ); 
+      
+      $('.plot-wrapper-'+this.cid+' .legend').html(this.template($.extend(this.model.attributes,{report:app.Config.get('report')})));
+      
     },
     renderPdf: function(writer,item_key,attr){
         writer.addPlot(this.plot.getCanvas(),item_key,attr);
-    },             
+    },
+    template: _.template('\
+    <ul class="legend">\
+<% if (!$.isEmptyObject(entity)){%>\
+<li class="legend-entity <% if (report === "entity"){%>legend-main<% } %>">\n\
+<span class="line"></span>\n\
+<span class="label"><%=entity_label%></span>\n\
+</li>\
+<% }%>\
+<% if (!$.isEmptyObject(type)){%>\
+<li class="legend-type <% if (report === "type"){%>legend-main<% } %>">\n\
+<span class="line"></span>\n\
+<span class="label"><%=type_label%></span>\n\
+</li>\
+<% }%>\
+<% if (!$.isEmptyObject(size)){%>\
+<li class="legend-size <% if (report === "size"){%>legend-main<% } %>">\n\
+<span class="line"></span>\n\
+<span class="label"><%=size_label%></span>\n\
+</li>\
+<% }%>\
+<li class="legend-all <% if (report === "entities"){%>legend-main<% } %>">\n\
+<span class="line"></span>\n\
+<span class="label"><%=all_label%></span>\n\
+</li>\
+    </ul>\
+    ')            
   });
     
   views.Details = Backbone.View.extend({
