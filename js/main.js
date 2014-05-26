@@ -24,7 +24,7 @@
       };
   
   /*
-   * backbone models & collections
+   * DATA models & collections: representing the data loaded from spreadsheet
    */
   models.Config = Backbone.Model.extend({
     color : function(is_light,is_hex){
@@ -139,7 +139,14 @@
     // currently 1 point for each criterion
     getMax : function(){
       return this.length;
-    }
+    },
+    // filter by year        
+    byGroup : function(group_id){           
+      var filtered = this.filter(function(record) {
+        return record.get("criteriongroupid") === group_id;
+      });
+      return new models.Criteria(filtered);            
+    },            
   });
   
   // CRITERIAGROUPS
@@ -252,7 +259,7 @@
       }
     },  
     getStaffNo : function(){     
-      return (this.get('staffno') !== '') ? this.get('staffno') + ' people': 'Not specified';
+      return (this.get('staffno') !== '') ? this.get('staffno'): 'Not specified';
     },
     getTypeTitle : function(){
       return (this.typeID !== '') ? app.Types.findWhere({id : this.typeID}).get('title') : 'Not specified';      
@@ -423,6 +430,23 @@
     
   });
   
+
+  
+  /*
+   * VIEW-SPECIFIC models & collections: containing data as needed for views
+   */  
+  
+  models.Intro = Backbone.Model.extend({
+    initialize : function(){
+      this.minYear = app.Years.getFirst();
+      this.maxYear = app.Years.getLast();
+      this.title = 'Crown Entities and the Good Employer';
+      this.subtitle = 'Annual Report Review '+this.minYear+' to '+this.maxYear;      
+      this.summary = 'The Human Rights Comission reviews and analyses the reporting of good employer obligations \
+by Crown entities and publishes its findings in an annual report "Crown entities and the Good Employer". \
+Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown entities and monitor thier progress.'
+    }
+  });  
   // AVERAGES
   //   
   // Defines type categories, based on sheet 'Types' of the google spreadsheet 
@@ -454,138 +478,10 @@
       type_label  : 'Same type', 
       size_label  : 'Same size',       
       entity_label: 'Current entity',
+      legend:true
     },
   });     
-  
- /*
-  * views.Tools
- */ 
-  views.Tools = Backbone.View.extend({
-    initialize: function () {        
-        this.render();        
-        this.listenTo(this.model, 'change', this.render);
-    },
-    render: function(){
-      var variables = {
-        entities        : app.Records.byYear(parseInt(this.model.get('year'))).models,
-        types           : app.Types.models,
-        sizes           : app.Sizes.models,
-        years           : (this.model.get('report') === "entity") 
-? app.Years.active().byYears(Object.keys(app.Records.byEntity(parseInt(this.model.get('id'))).getResults())).models
-: app.Years.active().models,        
-        allActive       : (this.model.get('report') === "entities" && this.model.get('id') === 'all') ? 'active' : '',
-        entityActiveID  : (this.model.get('report') === "entity") ? this.model.get('id') : '',        
-        typeActiveID    : (this.model.get('report') === "type") ? this.model.get('id') : '',
-        sizeActiveMin   : (this.model.get('report') === "size") ? this.model.get('id') : -1,
-        yearActive      : parseInt(this.model.get('year'))
-      };
-      this.$el.html(this.template(variables));
-      return this;      
-    },            
-    events : {
-      "click #all"      : "selectAll",
-      "click #renderPdf": "renderPdf",
-      "change #entity"  : "selectEntity", 
-      "change #type"    : "selectType", 
-      "change #size"    : "selectSize", 
-      "change #year"    : "selectYear", 
-    },
-    selectAll: function( event ){
-      event.preventDefault();
-      app.App.navigate(this.model.get('year') + '/report/entities-all', {trigger: true});
-    },        
-    selectEntity: function( event ){
-      event.preventDefault();
-      app.App.navigate(this.model.get('year') + '/report/entity-' + this.$("#entity").val(), {trigger: true});
-    },        
-    selectType: function( event ){
-      event.preventDefault();
-      app.App.navigate(this.model.get('year') + '/report/type-' + this.$("#type").val(), {trigger: true});
-    },        
-    selectSize: function( event ){
-      event.preventDefault();
-      app.App.navigate(this.model.get('year') + '/report/size-' + this.$("#size").val(), {trigger: true});
-    },
-    selectYear: function( event ){
-      event.preventDefault();
-      app.App.navigate(this.$("#year").val() + '/report/' + this.model.get('report') + '-' + this.model.get('id') , {trigger: true});
-    },
-    renderPdf: function( event ){
-        event.preventDefault();
-        renderPdf();
-    },
-    template: _.template('\
-<button id="all" class="<%= allActive %>">All entities</button>\
-<select id="entity">\
-  <option value="none">Entity</option>\
-  <% _.forEach(entities, function (entity) {%>\
-    <option value="<%= entity.get("entityid") %>" <% if (entity.get("entityid") === parseInt(entityActiveID)) { print ("selected") } %> >\
-    <%= entity.get("title") %></option>\
-  <%})%>\
-</select>\
-<select id="type">\
-  <option value="none">Type</option>\
-  <% _.forEach(types, function (type) {%>\
-    <option value="<%= type.get("id") %>" <% if (type.get("id") === typeActiveID) { print ("selected") } %> >\
-    <%= type.get("title") %></option>\
-  <%})%>\
-</select>\
-<select id="size">\
-  <option value="none">Size</option>\
-  <% _.forEach(sizes, function (size) {%>\
-    <option value="<%= size.get("min") %>" <% if (size.get("min") <= sizeActiveMin && size.get("max") >= sizeActiveMin) { print ("selected") } %> >\
-    <%= size.get("title") %></option>\
-  <%})%>\
-</select>\
-<select id="year">\
-  <% _.forEach(years, function (year) {%>\
-    <option value="<%= year.get("year") %>" <% if (parseInt(year.get("year")) === yearActive) { print ("selected") } %>>\
-    <%= year.get("year") %></option>\
-  <%})%>\
-</select>\
-<a href="#" id="renderPdf">Download report as pdf</a>\
-    ')                
-  });
-  
-  models.Intro = Backbone.Model.extend({
-    initialize : function(){
-      this.minYear = app.Years.getFirst();
-      this.maxYear = app.Years.getLast();
-      this.title = 'Crown Entities and the Good Employer';
-      this.subtitle = 'Annual Report Review '+this.minYear+' to '+this.maxYear;      
-      this.summary = 'The Human Rights Comission reviews and analyses the reporting of good employer obligations \
-by Crown entities and publishes its findings in an annual report "Crown entities and the Good Employer". \
-Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown entities and monitor thier progress.'
-    }
-  });
-  
- /*
-  * views.Intro
- */ 
-  views.Intro = Backbone.View.extend({
-    initialize: function () {
-        this.render();
-    },
-    render: function(){
-      this.$el.html(this.template(this.model));
-      return this;      
-    },
-    template: _.template('<h1><%= title %></h1>\n\
-<h3><%= subtitle %></h3>\n\
-<p><%= summary %></p>'),
-    renderPdf: function (writer,attr){
-      console.log('intro.renderpdf');
-
-      writer.addText(this.model.title,'intro_title');
-      writer.addText(this.model.subtitle,'intro_subtitle');     
-      writer.addText(this.model.summary,'intro_summary');     
-      writer.addLine('intro_line');
-      writer.addImage('intro_logo','intro_logo')
-
-    },            
-  });
-  
-  
+    
   models.Overview = Backbone.Model.extend({
     initialize: function(){
       this.set('updated',0);
@@ -633,7 +529,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
         if (entitiesByYear.length === 0) {
           
         } else {
-          this.set('graphCollectionActive', entityRecords.byYear(this.currentYear));
+          this.set('graphCollectionActive', entitiesByYear);
           var entity = this.get('graphCollectionActive').first();
 
           var resultsType = app.Records.byType(entity.typeID).getResults();
@@ -768,7 +664,354 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       })
     },
             
+  });  
+
+  models.Details = Backbone.Model.extend({
+    initialize: function(){
+      var that = this;
+      this.set('updated',0);
+      this.results = {};
+      this.results.all = app.Records.getResults();
+      this.results.all_geref = app.Records.getResults({criterion:'geref'});
+      this.results.all_ge = app.Records.getResults({group:'GE'});
+      this.results.all_ge_elements = [];
+      _.each(app.Criteria.byGroup('GE').models, function(criterion){
+        that.results.all_ge_elements.push(app.Records.getResults({criterion:criterion.get('id')}));
+      });
+      this.results.all_wp = app.Records.getResults({group:'WP'});
+      this.results.all_wp_elements = [];
+      _.each(app.Criteria.byGroup('WP').models, function(criterion){
+        that.results.all_wp_elements.push(app.Records.getResults({criterion:criterion.get('id')}));
+      });
+      this.results.all_eeoref = app.Records.getResults({criterion:'eeoref'});
+      this.results.all_review = app.Records.getResults({criterion:'review'});
+      this.results.all_participation = app.Records.getResults({criterion:'participation'});
+      this.resetFields();
+    },
+    update : function(){
+      this.currentYear = parseInt(app.Config.get('year'));
+      this.currentYearData = app.Years.byYear(this.currentYear).first();
+      this.currentCount = this.results.all[this.currentYear].count;
+      
+      this.resetFields();
+      var results = {
+        geref : {},
+        ge : {},
+        eeoref : {},
+        review : {},
+        wp : {},
+        participation : {},
+      };
+      var sizeRecords,typeRecords;
+      
+      if (app.Config.get('report') === "entity") {                                   
+        var entityID = parseInt(app.Config.get('id'));
+        var entityRecords = app.Records.byEntity(entityID);        
+        var entitiesByYear = entityRecords.byYear(this.currentYear);
+        if (entitiesByYear.length === 0) {
+          
+        } else {      
+          var entity = entitiesByYear.first();
+          typeRecords = app.Records.byType(entity.typeID);
+          sizeRecords = app.Records.bySize(entity.getStaffNo());
+          results.geref.entity = entityRecords.getResults({criterion:'geref'});
+          results.ge.entity = entityRecords.getResults({group:'GE'});
+          results.wp.entity = entityRecords.getResults({group:'WP'});
+          results.eeoref.entity = entityRecords.getResults({criterion:'eeoref'});
+          results.review.entity = entityRecords.getResults({criterion:'review'});
+          results.participation.entity = entityRecords.getResults({criterion:'participation'});
+        }
+      }                              
+      else if (app.Config.get('report') === "type") {          
+        var typeID = app.Config.get('id');        
+        typeRecords = app.Records.byType(typeID);        
+      } 
+      // size category report
+      else if (app.Config.get('report') === "size") {
+        var sizeID = app.Config.get('id');        
+        sizeRecords = app.Records.bySize(sizeID);        
+      }
+      
+      results.geref.all = this.results.all_geref;
+      results.ge.all = this.results.all_ge;
+      results.wp.all = this.results.all_wp;
+      results.eeoref.all = this.results.all_eeoref;
+      results.review.all = this.results.all_review;
+      results.participation.all = this.results.all_participation;          
+      
+      if (typeof typeRecords !== 'undefined'){
+        results.geref.type = typeRecords.getResults({criterion:'geref'});
+        results.ge.type = typeRecords.getResults({group:'GE'});
+        results.wp.type = typeRecords.getResults({group:'WP'});
+        results.eeoref.type = typeRecords.getResults({criterion:'eeoref'});
+        results.review.type = typeRecords.getResults({criterion:'review'});
+        results.participation.type = typeRecords.getResults({criterion:'participation'});
+      }
+      if (typeof sizeRecords !== 'undefined'){
+        results.geref.size = sizeRecords.getResults({criterion:'geref'});
+        results.ge.size = sizeRecords.getResults({group:'GE'});     
+        results.wp.size = sizeRecords.getResults({group:'WP'});     
+        results.eeoref.size = sizeRecords.getResults({criterion:'eeoref'});
+        results.review.size = sizeRecords.getResults({criterion:'review'});
+        results.participation.size = sizeRecords.getResults({criterion:'participation'});
+      }
+      this.set({
+          year: this.currentYear,          
+          subviews : {
+            geref : new models.CriteriaDetails({
+              criteria : 'single',
+              year : this.currentYear,
+              id : 'geref',
+              report : app.Config.get('report'),
+              results : results.geref,
+              title : app.Criteria.findWhere({id:'ge_ref'}).get('title').trim(),
+              summary : this.currentYearData.get('summarygeref'),
+            }),
+            ge : new models.CriteriaDetails({
+              criteria : 'group',
+              year : this.currentYear,
+              id : 'ge',
+              report : app.Config.get('report'),
+              results : results.ge,
+              title : app.CriteriaGroups.findWhere({id:'GE'}).get('title').trim(),
+              summary : this.currentYearData.get('summarygeelements'),
+            }),            
+            eeoref : new models.CriteriaDetails({
+              criteria : 'single',
+              year : this.currentYear,
+              id : 'geref',
+              report : app.Config.get('report'),
+              results : results.eeoref,
+              title : app.Criteria.findWhere({id:'eeo_ref'}).get('title').trim(),
+              summary : this.currentYearData.get('summaryeeoref'),
+            }),
+            review : new models.CriteriaDetails({
+              criteria : 'single',
+              year : this.currentYear,
+              id : 'review',
+              report : app.Config.get('report'),
+              results : results.review,
+              title : app.Criteria.findWhere({id:'review'}).get('title').trim(),
+              summary : this.currentYearData.get('summaryreview'),
+            }),
+            wp : new models.CriteriaDetails({
+              criteria : 'group',
+              year : this.currentYear,
+              id : 'wp',
+              report : app.Config.get('report'),
+              results : results.wp,
+              title : app.CriteriaGroups.findWhere({id:'WP'}).get('title').trim(),
+              summary : this.currentYearData.get('summarywp'),
+            }),            
+            participation : new models.CriteriaDetails({
+              criteria : 'single',
+              year : this.currentYear,
+              id : 'participation',
+              report : app.Config.get('report'),
+              results : results.geref,
+              title : app.Criteria.findWhere({id:'participation'}).get('title').trim(),
+              summary : this.currentYearData.get('summaryparticipation'),
+            }),
+          }
+        });
+      
+      // triggers the view rendering
+      this.set('updated',app.Config.get('id')+app.Config.get('year'));      
+    },
+    resetFields : function(){
+      this.set({
+        subviews : {}
+      });
+    },
   });
+  models.CriteriaDetails = Backbone.Model.extend({
+    initialize : function(){  
+      var results = this.get('results');
+      var currentYear = this.get('year');      
+      if (this.get('report') === 'entities') { 
+        this.set('score',results.all[currentYear].percentage + '%');
+        this.set('modelAverages', 
+          new models.Averages({})
+        );
+        this.set('modelAveragesTime' , 
+          new models.AveragesTime({
+            all: results.all,
+            legend: false,
+          })
+        );        
+      }      
+      else if (this.get('report') === 'entity'){
+        this.set('score',results.entity[currentYear].percentage + '%');
+        this.set('modelAverages', 
+          new models.Averages({
+            all: results.all[currentYear].percentage,    
+            type:results.type[currentYear].percentage,
+            size:results.size[currentYear].percentage
+          })
+        );
+        this.set('modelAveragesTime' , 
+          new models.AveragesTime({
+            all: results.all,
+            type:results.type ,
+            size:results.size,
+            entity:results.entity,
+            legend: false,
+          })
+        );
+      }
+      else if (this.get('report') === 'type'){
+        this.set('score',results.type[currentYear].percentage + '%');
+        this.set('modelAverages', 
+          new models.Averages({
+            all: results.all[currentYear].percentage,
+          })
+        );
+        this.set('modelAveragesTime' , 
+          new models.AveragesTime({
+            all: results.all,
+            type:results.type,
+            legend: false,
+          })
+        );
+      }
+      else if (this.get('report') === 'size'){
+        this.set('score',results.type[currentYear].percentage + '%');
+        this.set('modelAverages', 
+          new models.Averages({
+            all: results.all[currentYear].percentage,
+          })
+        );
+        this.set('modelAveragesTime' , 
+          new models.AveragesTime({
+            all: results.all,
+            size:results.size,
+            legend: false,
+          })
+        );
+      }
+    }
+  });
+  
+  /*
+   * VIEWS
+   */    
+  
+  /*
+   * views.Tools
+   */ 
+  views.Tools = Backbone.View.extend({
+    initialize: function () {        
+        this.render();        
+        this.listenTo(this.model, 'change', this.render);
+    },
+    render: function(){
+      var variables = {
+        entities        : app.Records.byYear(parseInt(this.model.get('year'))).models,
+        types           : app.Types.models,
+        sizes           : app.Sizes.models,
+        years           : (this.model.get('report') === "entity") 
+? app.Years.active().byYears(Object.keys(app.Records.byEntity(parseInt(this.model.get('id'))).getResults())).models
+: app.Years.active().models,        
+        allActive       : (this.model.get('report') === "entities" && this.model.get('id') === 'all') ? 'active' : '',
+        entityActiveID  : (this.model.get('report') === "entity") ? this.model.get('id') : '',        
+        typeActiveID    : (this.model.get('report') === "type") ? this.model.get('id') : '',
+        sizeActiveMin   : (this.model.get('report') === "size") ? this.model.get('id') : -1,
+        yearActive      : parseInt(this.model.get('year'))
+      };
+      this.$el.html(this.template(variables));
+      return this;      
+    },            
+    events : {
+      "click #all"      : "selectAll",
+      "click #renderPdf": "renderPdf",
+      "change #entity"  : "selectEntity", 
+      "change #type"    : "selectType", 
+      "change #size"    : "selectSize", 
+      "change #year"    : "selectYear", 
+    },
+    selectAll: function( event ){
+      event.preventDefault();
+      app.App.navigate(this.model.get('year') + '/report/entities-all', {trigger: true});
+    },        
+    selectEntity: function( event ){
+      event.preventDefault();
+      app.App.navigate(this.model.get('year') + '/report/entity-' + this.$("#entity").val(), {trigger: true});
+    },        
+    selectType: function( event ){
+      event.preventDefault();
+      app.App.navigate(this.model.get('year') + '/report/type-' + this.$("#type").val(), {trigger: true});
+    },        
+    selectSize: function( event ){
+      event.preventDefault();
+      app.App.navigate(this.model.get('year') + '/report/size-' + this.$("#size").val(), {trigger: true});
+    },
+    selectYear: function( event ){
+      event.preventDefault();
+      app.App.navigate(this.$("#year").val() + '/report/' + this.model.get('report') + '-' + this.model.get('id') , {trigger: true});
+    },
+    renderPdf: function( event ){
+        event.preventDefault();
+        renderPdf();
+    },
+    template: _.template('\
+<button id="all" class="<%= allActive %>">All entities</button>\
+<select id="entity">\
+  <option value="none">Entity</option>\
+  <% _.forEach(entities, function (entity) {%>\
+    <option value="<%= entity.get("entityid") %>" <% if (entity.get("entityid") === parseInt(entityActiveID)) { print ("selected") } %> >\
+    <%= entity.get("title") %></option>\
+  <%})%>\
+</select>\
+<select id="type">\
+  <option value="none">Type</option>\
+  <% _.forEach(types, function (type) {%>\
+    <option value="<%= type.get("id") %>" <% if (type.get("id") === typeActiveID) { print ("selected") } %> >\
+    <%= type.get("title") %></option>\
+  <%})%>\
+</select>\
+<select id="size">\
+  <option value="none">Size</option>\
+  <% _.forEach(sizes, function (size) {%>\
+    <option value="<%= size.get("min") %>" <% if (size.get("min") <= sizeActiveMin && size.get("max") >= sizeActiveMin) { print ("selected") } %> >\
+    <%= size.get("title") %></option>\
+  <%})%>\
+</select>\
+<select id="year">\
+  <% _.forEach(years, function (year) {%>\
+    <option value="<%= year.get("year") %>" <% if (parseInt(year.get("year")) === yearActive) { print ("selected") } %>>\
+    <%= year.get("year") %></option>\
+  <%})%>\
+</select>\
+<a href="#" id="renderPdf">Download report as pdf</a>\
+    ')                
+  });
+  
+  /*
+   * views.Intro
+   */ 
+  views.Intro = Backbone.View.extend({
+    initialize: function () {
+        this.render();
+    },
+    render: function(){
+      this.$el.html(this.template(this.model));
+      return this;      
+    },
+    template: _.template('<h1><%= title %></h1>\n\
+<h3><%= subtitle %></h3>\n\
+<p><%= summary %></p>'),
+    renderPdf: function (writer,attr){
+      console.log('intro.renderpdf');
+
+      writer.addText(this.model.title,'intro_title');
+      writer.addText(this.model.subtitle,'intro_subtitle');     
+      writer.addText(this.model.summary,'intro_summary');     
+      writer.addLine('intro_line');
+      writer.addImage('intro_logo','intro_logo')
+
+    },            
+  });
+
  /* 
   * views.Overview
   */
@@ -795,7 +1038,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       this.subviews.averagesView = new views.Averages({model:this.model.get('modelAverages')});
       $('.averages-panel').append( this.subviews.averagesView.render().el );      
       
-      // subview averages graph
+      // subview averages time graph
       this.subviews.averagesGraphView = new views.AveragesTimeGraph({model:this.model.get('modelAveragesTime')});
       $('#overview-time-graph').append( this.subviews.averagesGraphView.render().el );
       this.subviews.averagesGraphView.renderGraph();
@@ -1188,7 +1431,6 @@ template: _.template('\
       });
       dataset.push(
         this.lineOptions('all',{
-//          label : this.model.get('all_label'),
           data  : data
       }));
       options.colors.push(rgbToHex(COLORS.all));
@@ -1201,7 +1443,6 @@ template: _.template('\
           data.push([year.year,year.percentage]);
         });
         dataset.push(this.lineOptions('type',{
-//          label : this.model.get('type_label'),
           data  : data
         }));
         options.colors.push(rgbToHex(COLORS.type));
@@ -1214,7 +1455,6 @@ template: _.template('\
           data.push([year.year,year.percentage]);
         });
         dataset.push(this.lineOptions('size',{
-//          label : this.model.get('size_label'),
           data  : data
         }));
         options.colors.push(rgbToHex(COLORS.size));
@@ -1229,13 +1469,13 @@ template: _.template('\
         dataset.push({data:data});
         options.colors.push(rgbToHex(COLORS.entity));
       }
-//      options.legend.container = '.plot-wrapper-'+this.cid+' .legend';
       options.xaxis.max =  Math.max.apply(Math, Object.keys(this.model.get('all')))+(1/12);
       // Now, the chart can be drawn ...
       this.plot = $.plot( this.$('.plot'), dataset, options ); 
       
-      $('.plot-wrapper-'+this.cid+' .legend').html(this.template($.extend(this.model.attributes,{report:app.Config.get('report')})));
-      
+      if (this.model.get('legend')) {
+        $('.plot-wrapper-'+this.cid+' .legend').html(this.template($.extend(this.model.attributes,{report:app.Config.get('report')})));
+      }      
     },
     renderPdf: function(writer,item_key,attr){
         writer.addPlot(this.plot.getCanvas(),item_key,attr);
@@ -1269,41 +1509,72 @@ template: _.template('\
   });
     
   views.Details = Backbone.View.extend({
-    initialize: function (attrs) {
-        this.options = attrs;
-        //create subviews for each criteria or group (for criteria that are part of a group)
-        //this.subViews = ...
+    initialize: function () {
+        this.subviews = [];
         this.render();        
-        this.listenTo(this.model, 'change', this.render);
+        this.listenTo(this.model, 'change:updated', this.render);        
     },
     render: function() {
-      
+      this.$el.html(this.template(this.model.attributes));
+      var that = this;
+      //subviews
+      _.each(this.model.get('subviews'), function(sub){
+        var subview = (sub.get('criteria') === 'single' )
+           ? new views.Criterion({model:sub})
+           : new views.Criterion({model:sub});
+        that.subviews.push(subview);
+        that.$el.append(subview.render().el);
+        subview.renderGraphs();
+      })
+      return this;
     },
-//    renderGraphs: function() { 
-//    },
-    close: function() {
-      _.each(this.subViews, function(view) { view.remove(); });
-      this.remove();
-    },
-    toPDF : function (doc){
-      
-    }            
+template: _.template(''),        
   }); 
   
   views.Criterion = Backbone.View.extend({
-    initialize: function (attrs) {
-        this.options = attrs;
-        this.render();
-    },
+    initialize: function () {
+        this.subviews = {};
+    },    
     render: function() {
       
-    },
-    renderGraph: function() {
+      this.$el.html(this.template(this.model.attributes));
       
-    },
-    toPDF : function (doc){
+      // subview averages 
+      this.subviews.averagesView = new views.Averages({model:this.model.get('modelAverages')});
+      this.$('.averages-panel').append( this.subviews.averagesView.render().el );                 
       
-    }    
+      // subview averages time graph
+      this.subviews.averagesGraphView = new views.AveragesTimeGraph({model:this.model.get('modelAveragesTime')});            
+      this.$('.criteria-time-graph').append( this.subviews.averagesGraphView.render().el );
+      //this.subviews.averagesGraphView.renderGraph();
+      return this;
+    },
+    renderGraphs : function (){
+      this.subviews.averagesGraphView.renderGraph();
+    },
+    template : _.template('\
+  <div class="criteria">\n\
+  <div class="accordion-top">\n\
+    <div class="left">\n\
+      <div class="score">\n\
+        <%= score %>\n\
+      </div>\n\
+      <div class="title"><%= title %></div>\n\
+  </div>\n\
+    <div class="right">\n\
+      <div class="averages-panel"></div>\n\
+    </div>\n\
+  </div>\n\
+  <div class="accordion-bottom">\n\
+    <div class="left">\n\
+      <div class="summary-panel"><%= summary %></div>\n\
+    </div>\n\
+    <div class="right">\n\
+      <div class="criteria-time-graph"></div><!-- #overview-time-graph -->\n\
+    </div>\n\
+  </div>\n\
+  </div>\n\
+'),            
   });
   views.CriteriaGroup = Backbone.View.extend({
     initialize: function (attrs) {
@@ -1365,24 +1636,23 @@ template: _.template('\
         var filter = route.split('-');        
         app.Config    = app.Config || new models.Config();
         app.Overview  = app.Overview || new models.Overview();
+        app.Details   = app.Details || new models.Details();
         //default to all entities
         if ($.inArray(filter[0],['entities','entity','type','size']) === -1 || filter[1] === 'none' || filter[1] === '') {
           this.navigate(year + '/report/entities-all', {trigger: true});
         } else {
           app.Config.set({year:year,report:filter[0],id:filter[1]});
         }
-        // this should better happen on filter change
+        // updating models >>> trigger view render
         app.Overview.update();
+        app.Details.update();
         
         // load views if not already loaded
         app.viewsIntro    = app.viewsIntro     || new views.Intro({ el: $("#intro"), model:new models.Intro() });
         app.viewsTools    = app.viewsTools     || new views.Tools({ el: $("#tools"), model:app.Config });                
         app.viewsOverview = app.viewsOverview  || new views.Overview({ el: $("#overview"), model: app.Overview});
-
-//        // Load the details view
-//        app.viewsDetails && (app.viewsDetails.close ? app.viewsDetails.close() : app.viewsDetails.remove());      
-//        app.viewsDetails = new views.Details({ el: $("#details") });
-    
+        app.viewsDetails  = app.viewsDetails   || new views.Details({ el: $("#details"), model: app.Details});
+  
     },
 
   });
