@@ -130,7 +130,7 @@
   // Criterion ID field references column name of 'records'
   models.Criterion = Backbone.Model.extend({
     initialize: function(){
-      this.id = this.get('id').replace('_','');
+      this.set('id',this.get('id').replace('_',''));
     },
   });
   models.Criteria = Backbone.Collection.extend({        
@@ -674,15 +674,8 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       this.results.all = app.Records.getResults();
       this.results.all_geref = app.Records.getResults({criterion:'geref'});
       this.results.all_ge = app.Records.getResults({group:'GE'});
-      this.results.all_ge_elements = [];
-      _.each(app.Criteria.byGroup('GE').models, function(criterion){
-        that.results.all_ge_elements.push(app.Records.getResults({criterion:criterion.get('id')}));
-      });
+
       this.results.all_wp = app.Records.getResults({group:'WP'});
-      this.results.all_wp_elements = [];
-      _.each(app.Criteria.byGroup('WP').models, function(criterion){
-        that.results.all_wp_elements.push(app.Records.getResults({criterion:criterion.get('id')}));
-      });
       this.results.all_eeoref = app.Records.getResults({criterion:'eeoref'});
       this.results.all_review = app.Records.getResults({criterion:'review'});
       this.results.all_participation = app.Records.getResults({criterion:'participation'});
@@ -703,7 +696,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
         participation : {},
       };
       var sizeRecords,typeRecords;
-      
+      var that = this;
       if (app.Config.get('report') === "entity") {                                   
         var entityID = parseInt(app.Config.get('id'));
         var entityRecords = app.Records.byEntity(entityID);        
@@ -716,7 +709,23 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
           sizeRecords = app.Records.bySize(entity.getStaffNo());
           results.geref.entity = entityRecords.getResults({criterion:'geref'});
           results.ge.entity = entityRecords.getResults({group:'GE'});
+          results.ge.entity_elements = [];
+          _.each(app.Criteria.byGroup('GE').models, function(criterion){
+            results.ge.entity_elements.push({
+              id:criterion.get('id'),
+              title:criterion.get('title'),
+              results:entitiesByYear.getResults({criterion:criterion.get('id')})
+            });
+          });
           results.wp.entity = entityRecords.getResults({group:'WP'});
+          results.wp.entity_elements = [];
+          _.each(app.Criteria.byGroup('WP').models, function(criterion){
+            results.wp.entity_elements.push({
+              id:criterion.get('id'),
+              title:criterion.get('title'),
+              results:entitiesByYear.getResults({criterion:criterion.get('id')})
+            });
+          });
           results.eeoref.entity = entityRecords.getResults({criterion:'eeoref'});
           results.review.entity = entityRecords.getResults({criterion:'review'});
           results.participation.entity = entityRecords.getResults({criterion:'participation'});
@@ -734,7 +743,23 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       
       results.geref.all = this.results.all_geref;
       results.ge.all = this.results.all_ge;
-      results.wp.all = this.results.all_wp;
+      results.ge.all_elements = [];
+      _.each(app.Criteria.byGroup('GE').models, function(criterion){
+        results.ge.all_elements.push({
+          id:criterion.get('id'),
+          title:criterion.get('title'),
+          results:app.Records.byYear(that.currentYear).getResults({criterion:criterion.get('id')})
+        });
+      });
+      results.wp.all = this.results.all_wp;     
+      results.wp.all_elements = [];
+      _.each(app.Criteria.byGroup('WP').models, function(criterion){
+        results.wp.all_elements.push({
+          id:criterion.get('id'),
+          title:criterion.get('title'),
+          results:app.Records.byYear(that.currentYear).getResults({criterion:criterion.get('id')})
+        });
+      });      
       results.eeoref.all = this.results.all_eeoref;
       results.review.all = this.results.all_review;
       results.participation.all = this.results.all_participation;          
@@ -742,7 +767,23 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       if (typeof typeRecords !== 'undefined'){
         results.geref.type = typeRecords.getResults({criterion:'geref'});
         results.ge.type = typeRecords.getResults({group:'GE'});
+        results.ge.type_elements = [];
+        _.each(app.Criteria.byGroup('GE').models, function(criterion){
+          results.ge.type_elements.push({
+            id:criterion.get('id'),
+            title:criterion.get('title'),
+            results:typeRecords.byYear(that.currentYear).getResults({criterion:criterion.get('id')})
+          });
+        });        
         results.wp.type = typeRecords.getResults({group:'WP'});
+        results.wp.type_elements = [];
+        _.each(app.Criteria.byGroup('WP').models, function(criterion){
+          results.wp.type_elements.push({
+            id:criterion.get('id'),
+            title:criterion.get('title'),
+            results:typeRecords.byYear(that.currentYear).getResults({criterion:criterion.get('id')})
+          });
+        });         
         results.eeoref.type = typeRecords.getResults({criterion:'eeoref'});
         results.review.type = typeRecords.getResults({criterion:'review'});
         results.participation.type = typeRecords.getResults({criterion:'participation'});
@@ -750,7 +791,23 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       if (typeof sizeRecords !== 'undefined'){
         results.geref.size = sizeRecords.getResults({criterion:'geref'});
         results.ge.size = sizeRecords.getResults({group:'GE'});     
+        results.ge.size_elements = [];
+        _.each(app.Criteria.byGroup('GE').models, function(criterion){
+          results.ge.size_elements.push({
+            id:criterion.get('id'),
+            title:criterion.get('title'),
+            results:sizeRecords.byYear(that.currentYear).getResults({criterion:criterion.get('id')})
+          });
+        });        
         results.wp.size = sizeRecords.getResults({group:'WP'});     
+        results.wp.size_elements = [];
+        _.each(app.Criteria.byGroup('WP').models, function(criterion){
+          results.wp.size_elements.push({
+            id:criterion.get('id'),
+            title:criterion.get('title'),
+            results:sizeRecords.byYear(that.currentYear).getResults({criterion:criterion.get('id')})
+          });
+        });        
         results.eeoref.size = sizeRecords.getResults({criterion:'eeoref'});
         results.review.size = sizeRecords.getResults({criterion:'review'});
         results.participation.size = sizeRecords.getResults({criterion:'participation'});
@@ -764,7 +821,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
               id : 'geref',
               report : app.Config.get('report'),
               results : results.geref,
-              title : app.Criteria.findWhere({id:'ge_ref'}).get('title').trim(),
+              title : app.Criteria.findWhere({id:'geref'}).get('title').trim(),
               summary : this.currentYearData.get('summarygeref'),
             }),
             ge : new models.CriteriaDetails({
@@ -782,7 +839,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
               id : 'geref',
               report : app.Config.get('report'),
               results : results.eeoref,
-              title : app.Criteria.findWhere({id:'eeo_ref'}).get('title').trim(),
+              title : app.Criteria.findWhere({id:'eeoref'}).get('title').trim(),
               summary : this.currentYearData.get('summaryeeoref'),
             }),
             review : new models.CriteriaDetails({
@@ -830,6 +887,9 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       var currentYear = this.get('year');      
       if (this.get('report') === 'entities') { 
         this.set('score',results.all[currentYear].percentage + '%');
+        if (this.get('criteria') === 'group'){
+          this.set('all_group_elements',results.all_elements);
+        }
         this.set('modelAverages', 
           new models.Averages({})
         );
@@ -842,6 +902,12 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       }      
       else if (this.get('report') === 'entity'){
         this.set('score',results.entity[currentYear].percentage + '%');
+        if (this.get('criteria') === 'group'){
+          this.set('entity_group_elements',results.entity_elements);
+          this.set('all_group_elements',results.all_elements);
+          this.set('type_group_elements',results.type_elements);
+          this.set('size_group_elements',results.size_elements);
+        }
         this.set('modelAverages', 
           new models.Averages({
             all: results.all[currentYear].percentage,    
@@ -849,7 +915,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
             size:results.size[currentYear].percentage
           })
         );
-        this.set('modelAveragesTime' , 
+        this.set('modelAveragesTime', 
           new models.AveragesTime({
             all: results.all,
             type:results.type ,
@@ -861,6 +927,10 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       }
       else if (this.get('report') === 'type'){
         this.set('score',results.type[currentYear].percentage + '%');
+        if (this.get('criteria') === 'group'){
+          this.set('all_group_elements',results.all_elements);
+          this.set('type_group_elements',results.type_elements);
+        }        
         this.set('modelAverages', 
           new models.Averages({
             all: results.all[currentYear].percentage,
@@ -875,7 +945,11 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
         );
       }
       else if (this.get('report') === 'size'){
-        this.set('score',results.type[currentYear].percentage + '%');
+        this.set('score',results.size[currentYear].percentage + '%');
+        if (this.get('criteria') === 'group'){
+          this.set('all_group_elements',results.all_elements);
+          this.set('size_group_elements',results.size_elements);
+        }        
         this.set('modelAverages', 
           new models.Averages({
             all: results.all[currentYear].percentage,
@@ -1301,12 +1375,12 @@ template: _.template('\
       // get item to calculate offsets
       var item = writer.item(item_key,attr);           
       
-      if(this.model.get('type')){
+      if(this.model.get('type') > -1){
         writer.addText(this.model.get('type_label'),'default',{x:item.x+offset.x,y:item.y+offset.y + label_margin.top});
         writer.addText(this.model.get('type')+'%','default',{x:item.x+offset.x + label_margin.right,y:item.y+offset.y + label_margin.top,style:'bold',color:COLORS.type});
         offset.x += writer.addAverageBar(this.model.get('type'),{x:item.x+offset.x,y:item.y+offset.y,color:COLORS.type});        
       }
-      if(this.model.get('size')){
+      if(this.model.get('size') > -1){
         writer.addText(this.model.get('size_label'),'default',{x:item.x+offset.x,y:item.y+offset.y + label_margin.top});
         writer.addText(this.model.get('size')+'%','default',{x:item.x+offset.x + label_margin.right,y:item.y+offset.y + label_margin.top,style:'bold',color:COLORS.size});        
         offset.x += writer.addAverageBar(this.model.get('size'),{x:item.x+offset.x,y:item.y+offset.y,color:COLORS.size});
@@ -1521,7 +1595,7 @@ template: _.template('\
       _.each(this.model.get('subviews'), function(sub){
         var subview = (sub.get('criteria') === 'single' )
            ? new views.Criterion({model:sub})
-           : new views.Criterion({model:sub});
+           : new views.CriteriaGroup({model:sub});
         that.subviews.push(subview);
         that.$el.append(subview.render().el);
         subview.renderGraphs();
@@ -1546,7 +1620,6 @@ template: _.template(''),
       // subview averages time graph
       this.subviews.averagesGraphView = new views.AveragesTimeGraph({model:this.model.get('modelAveragesTime')});            
       this.$('.criteria-time-graph').append( this.subviews.averagesGraphView.render().el );
-      //this.subviews.averagesGraphView.renderGraph();
       return this;
     },
     renderGraphs : function (){
@@ -1577,19 +1650,96 @@ template: _.template(''),
 '),            
   });
   views.CriteriaGroup = Backbone.View.extend({
-    initialize: function (attrs) {
-        this.options = attrs;
-        this.render();
-    },
+    initialize: function () {
+        this.subviews = {};
+    },    
     render: function() {
       
-    },
-    renderGraph: function() {
+      this.$el.html(this.template(this.model.attributes));
+      var that = this;
+      var i = 0;
+      _.each(this.model.attributes.all_group_elements,function(all){          
+       
+        if (that.model.get('report') === 'entities'){
+          that.$('.group-elements ul').append(that.template_elements_all($.extend(all,{year:that.model.attributes.year})));      
+        }
+        else if (that.model.get('report') === 'entity'){      
+          that.$('.group-elements ul').append(that.template_elements_entity($.extend(that.model.attributes,{index:i})));
+        }
+        else if (that.model.get('report') === 'type'){      
+          that.$('.group-elements ul').append(that.template_elements_type($.extend(that.model.attributes,{index:i})));
+        }
+        else if (that.model.get('report') === 'size'){      
+          that.$('.group-elements ul').append(that.template_elements_size($.extend(that.model.attributes,{index:i})));
+        }
+        i++;
+      });      
+      // subview averages 
+      this.subviews.averagesView = new views.Averages({model:this.model.get('modelAverages')});
+      this.$('.averages-panel').append( this.subviews.averagesView.render().el );                 
       
+      // subview averages time graph
+      this.subviews.averagesGraphView = new views.AveragesTimeGraph({model:this.model.get('modelAveragesTime')});            
+      this.$('.criteria-time-graph').append( this.subviews.averagesGraphView.render().el );
+
+      return this;
     },
-    toPDF : function (doc){
-      
-    }    
+    renderGraphs : function (){
+      this.subviews.averagesGraphView.renderGraph();
+    },
+    template : _.template('\
+  <div class="criteria">\n\
+  <div class="accordion-top">\n\
+    <div class="left">\n\
+      <div class="score">\n\
+        <%= score %>\n\
+      </div>\n\
+      <div class="title"><%= title %></div>\n\
+  </div>\n\
+    <div class="right">\n\
+      <div class="averages-panel"></div>\n\
+    </div>\n\
+  </div>\n\
+  <div class="accordion-bottom">\n\
+    <div class="group-elements"><ul></ul></div>\n\
+    <div class="left">\n\
+      <div class="summary-panel"><%= summary %></div>\n\
+    </div>\n\
+    <div class="right">\n\
+      <div class="criteria-time-graph"></div><!-- #overview-time-graph -->\n\
+    </div>\n\
+  </div>\n\
+  </div>\n\
+'), 
+    template_elements_all : _.template('\
+<li class="item">\n\
+<span class="score"><%= results[year].percentage %></span>\n\
+<span class="title"><%= title %></span>\n\
+</li>\
+'),
+    template_elements_entity : _.template('\
+<li class="item">\n\
+<span class="score"><%= entity_group_elements[index].results[year].percentage %></span>\n\
+<span class="title"><%= entity_group_elements[index].title %></span>\n\
+<span class="score_type"><%= type_group_elements[index].results[year].percentage %></span>\n\
+<span class="score_size"><%= size_group_elements[index].results[year].percentage %></span>\n\
+<span class="score_all"><%= all_group_elements[index].results[year].percentage %></span>\n\
+</li>\
+'),
+    template_elements_type : _.template('\
+<li class="item">\n\
+<span class="score"><%= type_group_elements[index].results[year].percentage %></span>\n\
+<span class="title"><%= type_group_elements[index].title %></span>\n\
+<span class="score_all"><%= all_group_elements[index].results[year].percentage %></span>\n\
+</li>\
+'),
+    template_elements_size : _.template('\
+<li class="item">\n\
+<span class="score"><%= size_group_elements[index].results[year].percentage %></span>\n\
+<span class="title"><%= size_group_elements[index].title %></span>\n\
+<span class="score_all"><%= all_group_elements[index].results[year].percentage %></span>\n\
+</li>\
+'),
   });
   
   
