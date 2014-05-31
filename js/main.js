@@ -6,6 +6,7 @@
   // the pseudo database: all data kept in google spreadsheet   
   var doc_key  = '0AswFq_8FWOlndERBTzlFT1lCY04zWG9UcEQ1VE92eFE',
       doc_url  = 'https://docs.google.com/spreadsheet/pub?hl=en_US&hl=en_US&key='+doc_key+'&output=html',
+      URL      = 'http://tmfrnz.github.io/hrc-good-employer',
       models   = {},
       views    = {},
       routers  = {},
@@ -471,8 +472,9 @@
    * views.Tools
    */ 
   views.Tools = Backbone.View.extend({
-    initialize: function () {        
-        this.render();        
+    initialize: function () {                
+        this.render();
+        this.initFullscreen();
         this.listenTo(this.model, 'change', this.render);
     },
     render: function(){
@@ -555,7 +557,59 @@
   <%})%>\
 </select>\
 <a href="#" id="renderPdf">Download report as pdf</a>\
-    ')                
+<a href="#" class="hidden-fullscreen hidden-standalone" data-toggle="fullscreen">Enter fullscreen</a>\
+<a href="#" class="visible-fullscreen hidden-standalone" data-toggle="fullscreen-close">Exit fullscreen</a>\
+    '),
+    /* FULLSCREEN   ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+    initFullscreen : function () {
+      // if embedded offer fullacreen
+      if (top !== self) {
+        $('body').removeClass('standalone');
+        var wasFullScreen = fullScreenApi.isFullScreen(),
+          resizeTimer;
+        $(window).on('resize', function () {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(resized, 300);
+        });
+
+        function resized() {
+          if (wasFullScreen !== fullScreenApi.isFullScreen()) { // fullscreen mode has changed
+            if (wasFullScreen) {
+              $('body').removeClass('fullscreen');
+              // you have just EXITED full screen
+            } else {
+              $('body').addClass('fullscreen');
+              // you have just ENTERED full screen
+            }
+            wasFullScreen = fullScreenApi.isFullScreen();
+          }
+          // if not embedded treat as fullscreen
+          if (top === self) {
+            $('body').addClass('standalone');
+          }
+        }
+
+        $("a[data-toggle='fullscreen']").attr("href", URL);
+        $("a[data-toggle='fullscreen']").click(function (e) {
+          // if embedded and fullscreen support
+          // also excluding webkit browsers for now
+          var webkit = /webkit/.test(navigator.userAgent.toLowerCase());
+          if (top !== self && fullScreenApi.supportsFullScreen && !webkit) {
+            e.preventDefault();
+            $('html').requestFullScreen();
+          }
+
+        });
+        $("a[data-toggle='fullscreen-close']").click(function (e) {
+          // if embedded and fullscreen support
+          if (top !== self && fullScreenApi.supportsFullScreen) {
+            e.preventDefault();
+            $('html').cancelFullScreen();
+          }
+        });
+      }
+      
+    }      
   });
   
   /*
@@ -2400,5 +2454,7 @@ template: _.template(''),
   function rgbToHex(rgb) {
       return "#" + componentToHex(rgb.r) + componentToHex(rgb.g) + componentToHex(rgb.b);
   }  
-//});
+
+
+ //});
 

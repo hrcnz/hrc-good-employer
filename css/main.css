@@ -140,9 +140,6 @@ nav a:hover {
 .time-plot { width: 415px; height: 160px; }
 
 
-
-
-
 .tooltip {
    font-size: 1em;
    opacity: 1;
@@ -181,6 +178,18 @@ nav a:hover {
     width: 0;
 }
 
+
+/* fullscreen specific */
+.fullscreen .hidden-fullscreen,
+.standalone .hidden-fullscreen,
+.standalone .hidden-standalone,
+.visible-fullscreen {
+  display: none !important;
+}
+
+.fullscreen .visible-fullscreen {
+  display: block !important;
+}
 
 
 
