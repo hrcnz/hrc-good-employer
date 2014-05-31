@@ -136,7 +136,8 @@ nav a:hover {
    ========================================================================== */
 
 
-.plot { width: 720px; height: 240px; }
+.overview-plot { width: 679px; height: 210px; }
+.time-plot { width: 415px; height: 160px; }
 
 
 
