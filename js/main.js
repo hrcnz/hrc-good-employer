@@ -13,16 +13,17 @@
       app      = {},
       COLORS = {               
         white         :{r:255,g:255,b:255},
-        dark          :{r:97,g:98,b:97},
-        lighter       :{r:238,g:238,b:235},
-        light         :{r:210,g:210,b:210},
-        all           :{r:115,g:28,b:31}, // red
-        all_light     :{r:210,g:164,b:166},        
-        entity        :{r:36,g:173,b:162}, // turquoise
-        entity_light  :{r:203,g:227,b:225},        
-        type          :{r:163,g:185,b:64}, // green
+        dark          :{r:97,g:97,b:97},//#616161
+        medium         :{r:160,g:160,b:160},//#a0a0a0
+        light         :{r:210,g:210,b:210},//#d2d2d2
+        lighter       :{r:237,g:237,b:237},//#ededed
+        all           :{r:115,g:28,b:31}, // red: #731c1f
+        all_light     :{r:210,g:164,b:166},//        
+        entity        :{r:36,g:173,b:162}, // turquoise: #24ada2
+        entity_light  :{r:203,g:227,b:225},//        
+        type          :{r:163,g:185,b:64}, // green: #a3b940
         type_light    :{r:220,g:227,b:179},        
-        size          :{r:36,g:98,b:132}, // blue
+        size          :{r:36,g:98,b:132}, // blue: 246284
         size_light    :{r:185,g:195,b:212},
       };
   
@@ -474,10 +475,9 @@
   views.Tools = Backbone.View.extend({
     initialize: function () {                
         this.render();
-        this.initFullscreen();
         this.listenTo(this.model, 'change', this.render);
     },
-    render: function(){
+    render: function(){      
       var records = app.Records.byYear(parseInt(this.model.get('year')));
       var variables = {
         entities        : records.models,
@@ -493,6 +493,7 @@
         yearActive      : parseInt(this.model.get('year'))
       };
       this.$el.html(this.template(variables));
+      this.initFullscreen();
       return this;      
     },            
     events : {
@@ -634,9 +635,18 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       this.$el.html(this.template(this.model));
       return this;      
     },
-    template: _.template('<h1><%= title %></h1>\n\
+    template: _.template('\
+<div class="row">\n\
+<div class="col-left">\n\
+<h1><%= title %></h1>\n\
 <h3><%= subtitle %></h3>\n\
-<p><%= summary %></p>'),
+<div class="summary"><p><%= summary %></p></div>\n\
+</div>\n\
+<div class="col-right">\n\
+<a class="home-link" href="#" title="Crown Entities and the Good Employer: Home"></a>\n\
+</div>\n\
+</div>\n\
+</div>'),
     renderPdf: function (writer){
       console.log('intro.renderpdf');
 
@@ -708,10 +718,19 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
           var resultsType = app.Records.byType(entity.get('typeid')).getResults();
           var resultsSize = app.Records.bySize(entity.getStaffNo()).getResults();
 
-
-          var scoreChange = (entity.getScoreChange(true) !== false) ? entity.getScoreChange(true) : '';
-          var rankChange = (entity.getRankChange() !== false) ? entity.getRankChange() : '';                             
+          var scoreChange = '';
+          var scoreChangeClass = '';
+          if (entity.getScoreChange(true) !== false) {
+            scoreChange = entity.getScoreChange(true);
+            scoreChangeClass = scoreChange > 0 ? 'up' : scoreChange < 0 ? 'down' : 'same';
+          }
           
+          var rankChange = '';                             
+          var rankChangeClass = '';
+          if (entity.getRankChange() !== false) {
+            rankChange = entity.getRankChange();
+            rankChangeClass = rankChange > 0 ? 'up' : rankChange < 0 ? 'down' : 'same';
+          }          
           //prepare models for averages views
           this.set({
             modelAverages : new models.Averages({
@@ -742,12 +761,14 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
             // bottom
             score : entity.getScore(true),
             score_change : scoreChange,
+            score_change_class : scoreChangeClass,
             rank_label : 'Rank',
             rank : entity.getRank(),
             rank_of : ' of ' + this.currentCount + ' entities',
             rank_change : rankChange,
+            rank_change_class : rankChangeClass,
             summary : entity.getSummary(),            
-          });
+          });          
         }
       }
       
@@ -799,9 +820,6 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
           subtitle : 'This report provides an overview of selected category compliance',
         // bottom
           score_label : 'Average compliance',
-          score_change : (typeof resultsCat[this.currentYear-1] !== 'undefined') 
-            ? resultsCat[this.currentYear].percentage-resultsCat[this.currentYear-1].percentage
-            : '',
           score : resultsCat[this.currentYear].percentage,
           rank_label : 'Number of entities in category \n' + cat.get('title'),
           rank : recordsCat.byYear(this.currentYear).length,
@@ -809,6 +827,11 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
           summary : this.currentYearData.get('summaryoverview'),
         });
         
+        if (typeof resultsCat[this.currentYear-1] !== 'undefined') {
+          var diff = resultsCat[this.currentYear].percentage-resultsCat[this.currentYear-1].percentage;
+          this.set('score_change',diff);
+          this.set('score_change_class',diff > 0 ? 'up' : diff < 0 ? 'down' : 'same');
+        }        
       }      
       this.set('report',app.Config.get('report'));
       // triggers the view rendering
@@ -825,10 +848,12 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
         score_label : 'Overall compliance',
         score : '',
         score_change : '',
+        score_change_class : '',
         rank_label : '',
         rank : '',
         rank_of : '',
         rank_change : '',
+        rank_change_class : '',
         summary : '',
       })
     },
@@ -839,7 +864,22 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
         this.subviews = {};
         this.render();
         this.listenTo(this.model, 'change:updated', this.render);        
-    },    
+    },  
+    events : {
+      "click .accordion-toggle" : "accordionToggle",      
+    },
+    accordionToggle: function (event) {
+      event.preventDefault();
+       if (this.$('.accordion').hasClass('open')){
+          this.$('.accordion').removeClass('open');
+          this.$('.accordion-bottom').slideUp();
+       } else {
+          $('.accordion').removeClass('open');
+          $('.accordion-bottom').slideUp();
+          this.$('.accordion').addClass('open');
+          this.$('.accordion-bottom').slideDown();
+       }
+    },
     render: function() {
       
       this.$el.html(this.template(this.model.attributes));
@@ -851,72 +891,76 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
         collectionActive  : this.model.get('graphCollectionActive'),
         axis_label            : 'Compliance'
       });
-      $('#overview-graph').append( this.subviews.graphView.render().el );
+      this.$('#overview-graph').append( this.subviews.graphView.render().el );
       this.subviews.graphView.renderGraph();
       
       // subview averages 
       this.subviews.averagesView = new views.Averages({model:this.model.get('modelAverages')});
-      $('.averages-panel').append( this.subviews.averagesView.render().el );      
+      this.$('.averages-panel').append( this.subviews.averagesView.render().el );      
       
       // subview averages time graph
       this.subviews.averagesGraphView = new views.AveragesTimeGraph({model:this.model.get('modelAveragesTime')});
-      $('#overview-time-graph').append( this.subviews.averagesGraphView.render().el );
-      this.subviews.averagesGraphView.renderGraph();
+      this.$('#overview-time-graph').append( this.subviews.averagesGraphView.render().el );
+      this.subviews.averagesGraphView.renderGraph();            
       
       return this;
     },
 template: _.template('\
-<div id="overview-top">\n\
-  <h2><%= title %></h2>\
-  <h4><%= subtitle %></h4>\
-  <h2><%= year %></h2>\n\
+<div id="overview-title" class="row">\n\
+  <div class="col-left">\n\
+<h2><%= title %></h2>\
+  <h4 class="medium"><%= subtitle %></h4>\
+</div>\n\
+<div class="col-right">\n\
+<h2 class="year active"><%= year %></h2>\n\
+</div>\n\
+</div><!-- #overview-title -->\n\
+<div id="overview-cat" class="row">\n\
+<table><tbody>\n\
 <% if (type !== "") {%>\n\
-  <div><span class="label"><%= type_label %>: </span><%= type %></div>\n\
+  <tr><td class="label"><%= type_label %> </td><td><%= type %></td></tr>\n\
 <% } %>\n\
 <% if (size !== "") {%>\n\
-  <div><span class="label"><%= size_label %>: </span><%= size %></div>\n\
+  <tr><td class="label"><%= size_label %> </td><td><%= size %></td></tr>\n\
 <% } %>\n\
-</div><!-- #overview-top -->\n\
+</tbody></table>\n\
+</div><!-- #overview-cat -->\n\
 <div id="overview-graph"></div><!-- #overview-graph -->\n\
 <div id="overview-bottom">\n\
-  <div class="accordion-top">\n\
-    <div class="left">\n\
+  <div class="accordion open">\n\
+  <div class="accordion-top row">\n\
+    <a href="#" class="accordion-open accordion-toggle">More</a>\n\
+    <a href="#" class="accordion-close accordion-toggle">Less</a>\n\
+    <div class="col-left">\n\
       <div class="score-panel">\n\
-        <div class="score-label">\n\
-          <%= score_label %>\n\
-        </div>\n\
-        <div class="score">\n\
-          <%= score %>\n\
-        </div>\n\
-        <div class="score-change">\n\
-          <%= score_change %>\n\
+        <div class="score-label"><%= score_label %></div>\n\
+        <div class="score active"><%= score %>%</div>\n\
+        <div class="score-change active"><div class="icon-trend <%= score_change_class %>"></div>\n\
+          <% if (score_change > 0) {%>+<%}%><%= score_change %>\n\
         </div>\n\
       </div>\n\
     </div>\n\
-    <div class="right">\n\
+    <div class="col-right">\n\
       <div class="averages-panel"></div>\n\
     </div>\n\
   </div>\n\
-  <div class="accordion-bottom">\n\
-    <div class="left">\n\
+  <div class="accordion-bottom row">\n\
+    <div class="col-left">\n\
       <div class="rank-panel">\n\
-        <div class="rank-label">\n\
-          <%= rank_label %>\n\
-        </div>\n\
-        <div class="rank">\n\
-          <%= rank %><%= rank_of %>\n\
-        </div>\n\
-        <div class="rank-change">\n\
-          <%= rank_change %>\n\
+        <div class="rank-label"><%= rank_label %></div>\n\
+        <div class="rank active"><%= rank %><span class="rank-of"><%= rank_of %></span></div>\n\
+        <div class="rank-change active "><div class="icon-trend <%= rank_change_class %>"></div>\n\
+          <% if (rank_change > 0) {%>+<%}%><%= rank_change %>\n\
         </div>\n\
       </div>\n\
       <div class="summary-panel">\n\
-        <%= summary %>\n\
+        <p><%= summary %></p>\n\
       </div>\n\
     </div>\n\
-    <div class="right">\n\
+    <div class="col-right">\n\
       <div id="overview-time-graph"></div><!-- #overview-time-graph -->\n\
     </div>\n\
+  </div>\n\
   </div>\n\
 </div><!-- #overview-bottom -->\
     '),
@@ -930,7 +974,7 @@ template: _.template('\
       writer.addText(this.model.get('year').toString(),'overview_year',{color : highlight});
       
       offset += writer.addText(this.model.get('title'),'overview_title');
-      offset += writer.addText(this.model.get('subtitle'),'overview_subtitle',{offy:offset,color : COLORS.light});     
+      offset += writer.addText(this.model.get('subtitle'),'overview_subtitle',{offy:offset});
       //offset = (this.model.get('subtitle') !== '') ? 4 : 0;
       if (this.model.get('report') === 'entity') {
         writer.addText(this.model.get('type_label'),'overview_type_label',{offy:offset});
@@ -1006,7 +1050,7 @@ template: _.template('\
       "plotclick .overview-plot" : "plotclick",
       "plothover .overview-plot" : "plothover",
     },            
-    attributes: { class: 'overview-graph' },
+    attributes: { class: 'overview-graph row' },
     plotOptions: {
       canvas: false,
       yaxis: {
@@ -1210,27 +1254,25 @@ template: _.template('\
       writer.addLine('half_line',{x:item.x,y:item.y+offset.y});
     },
     template: _.template('\
-    <div class="averages">\
-      <div class="averages-title"><h4><%=title%></h4></div>\
-      <% if (type > -1) {%>\
-      <div class="average-type" style="background:#ddd;position:relative;width:100px;display:block;height:10px">\
-        <span style="width:<%=type%>%;position:absolute;left:0;height:10px;background:<%=type_color%>;display:block"></span>\
-      </div>\
-      <div><%=type_label%> <%=type%>%</div>\
-      <% }%>\
-      <% if (size > -1) {%>\
-      <div class="average-size" style="background:#ddd;position:relative;width:100px;display:block;height:10px">\
-        <span style="width:<%=size%>%;position:absolute;left:0;height:10px;background:<%=size_color%>;display:block"></span>\
-      </div>\
-      <div><%=size_label%> <%=size%>%</div>\
-      <% }%>\
-      <% if (all > -1) {%>\
-      <div class="average-all" style="background:#ddd;position:relative;width:100px;display:block;height:10px">\
-        <span style="width:<%=all%>%;position:absolute;left:0;height:10px;background:<%=all_color%>;display:block"></span>\
-      </div>\
-      <div><%=all_label%> <%=all%>%</div>\
-      <% }%>\
-    </div>\
+    <div class="averages">\n\
+      <div class="averages-title"><%=title%></div>\n\
+      <ul class="averages-list">\n\
+      <% if (type > -1) {%>\n\
+      <li>\n\
+        <div class="average-type averages-full"><span class="averages-score" style="width:<%=type%>%;background:<%=type_color%>;"></span></div>\n\
+        <div><%=type_label%> <%=type%>%</div>\n\
+      </li><% }%>\n\
+      <% if (size > -1) {%>\n\
+      <li>\n\
+        <div class="average-size averages-full"><span class="averages-score" style="width:<%=size%>%;background:<%=size_color%>;"></span></div>\n\
+        <div><%=size_label%> <%=size%>%</div>\n\
+      </li><% }%>\n\
+      <% if (all > -1) {%>\n\
+      <li>\n\
+        <div class="average-all averages-full"><span class="averages-score" style="width:<%=all%>%;background:<%=all_color%>;"></span></div>\n\
+        <div><%=all_label%> <%=all%>%</div>\n\
+      </li><% }%>\n\
+    </div>\n\
     ')            
   });
  /* 
@@ -1852,6 +1894,7 @@ template: _.template(''),
       // subview averages time graph
       this.subviews.averagesGraphView = new views.AveragesTimeGraph({model:this.model.get('modelAveragesTime')});            
       this.$('.criteria-time-graph').append( this.subviews.averagesGraphView.render().el );
+      this.$('.accordion-bottom').hide();
       return this;
     },
     renderGraphs : function (){
@@ -1871,25 +1914,27 @@ template: _.template(''),
       
     },            
     template : _.template('\
-  <div class="criteria">\n\
+  <div class="criteria row">\n\
+  <div class="accordion">\n\
   <div class="accordion-top">\n\
-    <div class="left">\n\
+    <div class="col-left">\n\
       <div class="score">\n\
         <%= score %>\n\
       </div>\n\
       <div class="title"><%= title %></div>\n\
   </div>\n\
-    <div class="right">\n\
+    <div class="col-right">\n\
       <div class="averages-panel"></div>\n\
     </div>\n\
   </div>\n\
   <div class="accordion-bottom">\n\
-    <div class="left">\n\
+    <div class="col-left">\n\
       <div class="summary-panel"><%= summary %></div>\n\
     </div>\n\
-    <div class="right">\n\
+    <div class="col-right">\n\
       <div class="criteria-time-graph"></div><!-- #overview-time-graph -->\n\
     </div>\n\
+  </div>\n\
   </div>\n\
   </div>\n\
 '),            
@@ -1926,7 +1971,8 @@ template: _.template(''),
       // subview averages time graph
       this.subviews.averagesGraphView = new views.AveragesTimeGraph({model:this.model.get('modelAveragesTime')});            
       this.$('.criteria-time-graph').append( this.subviews.averagesGraphView.render().el );
-
+      this.$('.accordion-bottom').hide();
+      
       return this;
     },
     renderGraphs : function (){
@@ -1973,26 +2019,28 @@ template: _.template(''),
       }      
     },            
     template : _.template('\
-  <div class="criteria">\n\
+  <div class="criteria criteria-group row">\n\
+  <div class="accordion">\n\
   <div class="accordion-top">\n\
-    <div class="left">\n\
+    <div class="col-left">\n\
       <div class="score">\n\
         <%= score %>%\n\
       </div>\n\
       <div class="title"><%= title %></div>\n\
   </div>\n\
-    <div class="right">\n\
+    <div class="col-right">\n\
       <div class="averages-panel"></div>\n\
     </div>\n\
   </div>\n\
   <div class="accordion-bottom">\n\
     <div class="group-elements"><ul></ul></div>\n\
-    <div class="left">\n\
+    <div class="col-left">\n\
       <div class="summary-panel"><%= summary %></div>\n\
     </div>\n\
-    <div class="right">\n\
+    <div class="col-right">\n\
       <div class="criteria-time-graph"></div><!-- #overview-time-graph -->\n\
     </div>\n\
+  </div>\n\
   </div>\n\
   </div>\n\
 '), 
@@ -2071,7 +2119,7 @@ template: _.template(''),
     // fully qualified >>> display report
     report: function(year, route) {        
         console.log('route:report');
-        
+
         // Parse hash
         var filter = route.split('-');        
         app.Config    = app.Config || new models.Config();
@@ -2083,6 +2131,13 @@ template: _.template(''),
         } else {
           app.Config.set({year:year,report:filter[0],id:filter[1]});
         }
+        
+        $('#report').removeClass (function (index, css) {
+          return (css.match (/\breport-\S+/g) || []).join(' ');
+        });
+        $('#report').addClass('report-'+filter[0]);
+        $('#report').addClass('report-id-'+filter[1]);
+        
         // updating models >>> trigger view render
         app.Overview.update();
         app.Details.update();
@@ -2149,6 +2204,8 @@ template: _.template(''),
     // start application
     app.App = new routers.App();
     Backbone.history.start();
+    
+    showOnLoad('onData');    
   }
   
     // Start the application
@@ -2207,7 +2264,7 @@ template: _.template(''),
         //----------------
         //----------------
         overview_title        : {y:71,w:130,size:16,yalign:'center'},
-        overview_subtitle     : {y:70,w:130},
+        overview_subtitle     : {y:70,w:130,color:COLORS.medium},
         overview_year         : {y:63,x:169,size:27,style:'bold'},
         overview_type_label   : {y:71,x:15,style:'bold'},
         overview_type         : {y:71,x:23},
@@ -2445,7 +2502,10 @@ template: _.template(''),
     }
   });
   
-
+  function showOnLoad(s){
+    $('.loading.'+s).hide();
+    $('.waiting.'+s).removeClass('waiting').css("visibility","visible").hide().fadeIn(2000);
+  }
   function componentToHex(c) {
     var hex = c.toString(16);
     return hex.length === 1 ? "0" + hex : hex;

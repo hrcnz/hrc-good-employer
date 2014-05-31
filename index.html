@@ -28,13 +28,20 @@
     <!--[if lt IE 7]>
         <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
     <![endif]>-->
-
-    <div id="intro"></div>  
-    <div id="tools"></div>  
-    <div id="overview"></div>
-    <div id="details"></div>    
-    <div id="footer"></div>    
-
+    
+    <div id="report" class="container">
+      <div id="loading" class="loading onData">
+        <p>Loading ... </p>
+        <h1>Crown Entities and the Good Employer</h1>
+        <h3>Interactive Annual Report Review</h3>
+      </div>
+      <div id="intro" class="waiting onData"></div>  
+      <div id="tools" class="waiting onData"></div>  
+      <div id="overview" class="waiting onData"></div>
+      <div id="details" class="waiting onData"></div>    
+      <div id="footer" class="waiting onData"></div>    
+    </div>
+    
     <script src="js/vendor/underscore.js"></script>
     <script src="js/vendor/backbone.js"></script>
     <script src="js/vendor/tabletop/tabletop.js"></script>  
