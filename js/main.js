@@ -30,7 +30,7 @@
   /*
    * DATA models & collections: representing the data loaded from spreadsheet
    */
-  models.Config = Backbone.Model.extend({
+  models.Control = Backbone.Model.extend({
     color : function(is_light,is_hex){
       is_light = typeof is_light !== 'undefined' ? is_light : false;
       is_hex = typeof is_hex !== 'undefined' ? is_hex : false;
@@ -47,6 +47,10 @@
       }
       return is_hex ? rgbToHex(rgb) : rgb;
     },
+    accordionCloseAll : function (){
+      $('.accordion').removeClass('open');
+      $('.accordion-bottom').slideUp();
+    }
   });
   // YEARS
   //
@@ -645,7 +649,6 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
 <div class="col-right">\n\
 <a class="home-link" href="#" title="Crown Entities and the Good Employer: Home"></a>\n\
 </div>\n\
-</div>\n\
 </div>'),
     renderPdf: function (writer){
       console.log('intro.renderpdf');
@@ -655,9 +658,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       writer.addText(this.model.summary,'intro_summary');     
       writer.addLine('intro_line');
       writer.addImage('intro_logo','intro_logo');
-      
-
-      
+       
     }
   });
 
@@ -671,7 +672,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       this.resetFields();
     },
     update : function(){
-      this.currentYear = parseInt(app.Config.get('year'));
+      this.currentYear = parseInt(app.Control.get('year'));
       this.currentYearData = app.Years.byYear(this.currentYear).first();     
       this.currentCount = this.get('resultsAll')[this.currentYear].count;
       
@@ -685,7 +686,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       
       // depending on report 
       // all entities
-      if (app.Config.get('report') === "all") {                                   
+      if (app.Control.get('report') === "all") {                                   
         // top
         this.set({
           title: 'All entities',
@@ -705,8 +706,8 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       } 
       
       // individual entity
-      else if (app.Config.get('report') === "entity") {
-        var entityID = parseInt(app.Config.get('id'));
+      else if (app.Control.get('report') === "entity") {
+        var entityID = parseInt(app.Control.get('id'));
         var entityRecords = app.Records.byEntity(entityID);
         var entitiesByYear = entityRecords.byYear(this.currentYear);
         if (entitiesByYear.length === 0) {
@@ -773,12 +774,12 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       }
       
       // type or size category report
-      else if (app.Config.get('report') === "type" || app.Config.get('report') === "size") {
+      else if (app.Control.get('report') === "type" || app.Control.get('report') === "size") {
         var cat, recordsCat, resultsCat;
         // type category report
-        if (app.Config.get('report') === "type") {          
+        if (app.Control.get('report') === "type") {          
           
-          var typeID = app.Config.get('id');
+          var typeID = app.Control.get('id');
           cat = app.Types.findWhere({id:typeID});
           recordsCat = app.Records.byType(typeID);
           resultsCat = recordsCat.getResults(); 
@@ -796,8 +797,8 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
           });
         } 
         // size category report
-        else if (app.Config.get('report') === "size") {
-          var sizeID = app.Config.get('id');
+        else if (app.Control.get('report') === "size") {
+          var sizeID = app.Control.get('id');
           cat = app.Sizes.bySize(sizeID).first();
           recordsCat = app.Records.bySize(sizeID);
           resultsCat = recordsCat.getResults();
@@ -817,11 +818,11 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
         } 
         this.set({
           graphCollectionActive : recordsCat.byYear(this.currentYear),    
-          subtitle : 'This report provides an overview of selected category compliance',
+          subtitle : 'This report provides an overview of the compliance of selected category',
         // bottom
           score_label : 'Average compliance',
           score : resultsCat[this.currentYear].percentage,
-          rank_label : 'Number of entities in category \n' + cat.get('title'),
+          rank_label : 'Number of entities in category',
           rank : recordsCat.byYear(this.currentYear).length,
           rank_of : ' of ' + this.currentCount + ' entities total',
           summary : this.currentYearData.get('summaryoverview'),
@@ -833,9 +834,9 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
           this.set('score_change_class',diff > 0 ? 'up' : diff < 0 ? 'down' : 'same');
         }        
       }      
-      this.set('report',app.Config.get('report'));
+      this.set('report',app.Control.get('report'));
       // triggers the view rendering
-      this.set('updated',app.Config.get('report')+app.Config.get('id')+app.Config.get('year'));
+      this.set('updated',app.Control.get('report')+app.Control.get('id')+app.Control.get('year'));
     },
     resetFields: function(){      
       this.set({
@@ -871,14 +872,23 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
     accordionToggle: function (event) {
       event.preventDefault();
        if (this.$('.accordion').hasClass('open')){
-          this.$('.accordion').removeClass('open');
-          this.$('.accordion-bottom').slideUp();
+         this.accordionClose();
        } else {
-          $('.accordion').removeClass('open');
-          $('.accordion-bottom').slideUp();
-          this.$('.accordion').addClass('open');
-          this.$('.accordion-bottom').slideDown();
+          app.Control.accordionCloseAll();
+          this.accordionOpen();
        }
+    },
+    accordionOpen:function(){      
+      var that = this;
+      this.$('.accordion-bottom').slideDown(function (){
+        that.$('.accordion').addClass('open');      
+      });      
+    },
+    accordionClose:function(){  
+      var that = this;    
+      this.$('.accordion-bottom').slideUp(function(){
+        that.$('.accordion').removeClass('open');
+      });      
     },
     render: function() {
       
@@ -948,7 +958,7 @@ template: _.template('\
     <div class="col-left">\n\
       <div class="rank-panel">\n\
         <div class="rank-label"><%= rank_label %></div>\n\
-        <div class="rank active"><%= rank %><span class="rank-of"><%= rank_of %></span></div>\n\
+        <div class="rank active"><span class="the-rank"><%= rank %></span><span class="rank-of"><%= rank_of %></span></div>\n\
         <div class="rank-change active "><div class="icon-trend <%= rank_change_class %>"></div>\n\
           <% if (rank_change > 0) {%>+<%}%><%= rank_change %>\n\
         </div>\n\
@@ -965,7 +975,7 @@ template: _.template('\
 </div><!-- #overview-bottom -->\
     '),
     renderPdf: function (writer){
-      var highlight = app.Config.color();
+      var highlight = app.Control.color();
       
       console.log('overview.renderpdf');
       var offset = 0;
@@ -1054,27 +1064,31 @@ template: _.template('\
     plotOptions: {
       canvas: false,
       yaxis: {
-        tickColor:COLORS.dark,
-        color:COLORS.dark,
+        tickColor:rgbToHex(COLORS.dark),
+        color:rgbToHex(COLORS.dark),
         min:0,
         max:100, 
         position:'right',        
-        tickLength:5
+        tickLength:5,
+        font : {
+          color: rgbToHex(COLORS.dark),
+          size:13
+        },                
       },
       xaxis: {
+        tickColor:rgbToHex(COLORS.dark),
         show:false,
-        min: -1
       },
       legend: { 
         show: false,
-      },
+      },      
       grid: { 
         hoverable: true, 
         clickable: true, 
         autoHighlight: true, 
         backgroundColor: '#ffffff',
         show: true,
-        aboveData: true,
+        aboveData: false,
         margin: 0,
         labelMargin: 10,
         markings: [],
@@ -1084,7 +1098,8 @@ template: _.template('\
         minBorderMargin: 0,
       },
       series: {
-        bars: { 
+        shadowSize : 0,
+        bars: {          
           show: true, 
           fill: 1, 
           barWidth: 0.9, 
@@ -1095,7 +1110,7 @@ template: _.template('\
     },
 
     render: function() {
-      this.$el.html('<div class="overview-plot"></div>');
+      this.$el.html(this.template({axis_label:this.options.axis_label}));      
       return this;
     },
             
@@ -1119,9 +1134,10 @@ template: _.template('\
         }
       }
             
+      options.xaxis.min = -1;
       options.xaxis.max = this.collection.length + 1;
 
-      var dataset = [{ data : data, bars : {fillColor:app.Config.color(true,true)} },{ data : dataActive, bars : {fillColor:app.Config.color(false,true)}}];
+      var dataset = [{ data : data, bars : {fillColor:app.Control.color(true,true)} },{ data : dataActive, bars : {fillColor:app.Control.color(false,true)}}];
 
       // Now, the chart can be drawn ...
       this.plot = $.plot( this.$('.overview-plot'), dataset, options );
@@ -1143,7 +1159,7 @@ template: _.template('\
       // there must be a better way
       if ( item ) {        
         app.App.navigate(
-            app.Config.get('year') 
+            app.Control.get('year') 
               + '/report/entity-' 
               + this.collection.models[item.dataIndex].get('entityid'), 
             {trigger: true});
@@ -1193,336 +1209,15 @@ template: _.template('\
 
       return html;
 
-   }
+   },
+    template: _.template('\
+<div class="plot-wrapper">\n\
+<div class="xaxis-label"><%= axis_label %></div>\n\
+<div class="overview-plot"></div>\n\
+</div>\
+')           
   });
   
- /* 
-  * AVERAGES CURRENT YEAR
-  */  
-  models.Averages = Backbone.Model.extend({
-    defaults: {
-      title : 'Average compliance of',
-      all : -1, 
-      type: -1, 
-      size: -1, 
-      all_label : 'All entities', 
-      type_label: 'Same type', 
-      size_label: 'Same size', 
-      all_color : rgbToHex(COLORS.all),
-      type_color : rgbToHex(COLORS.type),
-      size_color : rgbToHex(COLORS.size),         
-    },    
-  }); 
-  views.Averages = Backbone.View.extend({
-    initialize : function (options) {
-      this.options = options || {};
-    },
-    render : function(){
-      console.log('averages.render');
-      if (this.model.get('all') > -1 || this.model.get('type') > -1 || this.model.get('size') > -1) {
-        this.$el.html(this.template(this.model.attributes));
-      }
-      return this;      
-    },            
-    renderPdf: function(writer,item_key,attr){      
-      var offset = {x:0,y:0};
-      var label_margin = {top:2,right:16};
-      
-      // add subview title
-      offset.y += writer.addText(this.model.get('title'),item_key,attr);
-      offset.y += 1; 
-      // get item to calculate offsets
-      var item = writer.item(item_key,attr);           
-      
-      if(this.model.get('type') > -1){
-        writer.addText(this.model.get('type_label'),'default',{x:item.x+offset.x,y:item.y+offset.y + label_margin.top});
-        writer.addText(this.model.get('type')+'%','default',{x:item.x+offset.x + label_margin.right,y:item.y+offset.y + label_margin.top,style:'bold',color:COLORS.type});
-        offset.x += writer.addAverageBar(this.model.get('type'),{x:item.x+offset.x,y:item.y+offset.y,color:COLORS.type});        
-      }
-      if(this.model.get('size') > -1){
-        writer.addText(this.model.get('size_label'),'default',{x:item.x+offset.x,y:item.y+offset.y + label_margin.top});
-        writer.addText(this.model.get('size')+'%','default',{x:item.x+offset.x + label_margin.right,y:item.y+offset.y + label_margin.top,style:'bold',color:COLORS.size});        
-        offset.x += writer.addAverageBar(this.model.get('size'),{x:item.x+offset.x,y:item.y+offset.y,color:COLORS.size});
-      }
-      if(this.model.get('all') > -1){
-        writer.addText(this.model.get('all_label'),'default',{x:item.x+offset.x,y:item.y+offset.y + label_margin.top});
-        writer.addText(this.model.get('all')+'%','default',{x:item.x+offset.x + label_margin.right,y:item.y+offset.y + label_margin.top,style:'bold',color:COLORS.all});        
-        offset.x += writer.addAverageBar(this.model.get('all'),{x:item.x+offset.x,y:item.y+offset.y,color:COLORS.all});
-      }
-      offset.y += 9;
-      
-      writer.addLine('half_line',{x:item.x,y:item.y+offset.y});
-    },
-    template: _.template('\
-    <div class="averages">\n\
-      <div class="averages-title"><%=title%></div>\n\
-      <ul class="averages-list">\n\
-      <% if (type > -1) {%>\n\
-      <li>\n\
-        <div class="average-type averages-full"><span class="averages-score" style="width:<%=type%>%;background:<%=type_color%>;"></span></div>\n\
-        <div><%=type_label%> <%=type%>%</div>\n\
-      </li><% }%>\n\
-      <% if (size > -1) {%>\n\
-      <li>\n\
-        <div class="average-size averages-full"><span class="averages-score" style="width:<%=size%>%;background:<%=size_color%>;"></span></div>\n\
-        <div><%=size_label%> <%=size%>%</div>\n\
-      </li><% }%>\n\
-      <% if (all > -1) {%>\n\
-      <li>\n\
-        <div class="average-all averages-full"><span class="averages-score" style="width:<%=all%>%;background:<%=all_color%>;"></span></div>\n\
-        <div><%=all_label%> <%=all%>%</div>\n\
-      </li><% }%>\n\
-    </div>\n\
-    ')            
-  });
- /* 
-  * AVERAGES OVER TIME
-  */    
-  models.AveragesTime = Backbone.Model.extend({
-    defaults: {
-      title : 'Compliance over time',
-      all   : {}, 
-      type  : {}, 
-      size  : {},
-      entity: {},
-      all_label   : 'All entities', 
-      type_label  : 'Same type', 
-      size_label  : 'Same size',       
-      entity_label: 'Current entity',
-      legend:true,
-      axis_label: 'Compliance'
-    },
-  });  
-  views.AveragesTimeGraph = Backbone.View.extend({ 
-    initialize : function (options) {
-      this.options = options || {};
-      this.ticks = [[0,'0%'],[50,'50%'],[100,'100%']];
-      this.axis_padding = 0.05;
-    },
-    attributes: { class: 'time-graph'},
-
-    plotOptions: {
-      canvas: false,
-      yaxis: {
-        color:COLORS.dark,
-        min:0,
-        max:100, 
-        position:'right',
-        tickLength:5
-      },
-      xaxis: {
-        color:COLORS.dark,
-        tickSize:1,
-        tickDecimals:0,
-        tickLength:0
-      },
-      legend: { 
-        show: false
-      },
-      grid: { 
-        hoverable: true, 
-        clickable: true, 
-        autoHighlight: true, 
-        backgroundColor: '#ffffff',
-        show: true,
-        aboveData: true,
-        margin: 0,
-        labelMargin: 10,
-        markings: [],
-        borderWidth: {top:0,right:1,bottom:1,left:0},
-        borderColor: COLORS.dark,
-        color: COLORS.dark,
-        minBorderMargin: 0,
-      },      
-      series: {
-        shadowSize : 0,
-      }
-    },
-
-    render: function() {
-      this.$el.html('<div class="plot-wrapper-'+this.cid+'"><div class="time-plot"></div><div class="legend"></div></div>');
-      return this;
-    },
-    lineOptions:function(report,options){
-      if (report === 'all') { 
-        if(app.Config.get('report') === 'all') {
-          return $.extend(options,{lines:{show:true,lineWidth:2}});
-        } else {
-          return $.extend(options,{dashes:{show:true,lineWidth:1.5,dashLength:1.5}});
-        }
-      }
-      else if (report === 'type') { 
-        if(app.Config.get('report') === 'type') {
-          return $.extend(options,{lines:{show:true,lineWidth:2}});
-        } else {
-          return $.extend(options,{dashes:{show:true,lineWidth:1.5,dashLength:3}});
-        }
-      }
-      else if (report === 'size') { 
-        if(app.Config.get('report') === 'size') {
-          return $.extend(options,{lines:{show:true,lineWidth:2}});
-        } else {
-          return $.extend(options,{dashes:{show:true,lineWidth:1.5,dashLength:6}});
-        }
-      }
-      
-    },       
-    renderGraph: function() {
-
-      var options = _.clone(this.plotOptions);
-      options.yaxis.ticks = this.ticks;
-      
-      var data = [];
-      var dataset = [];
-      options.colors = [];      
-      //all entities
-      _.each(this.model.get('all'), function(year) { 
-        data.push([year.year,year.percentage]);
-      });
-      dataset.push(
-        this.lineOptions('all',{
-          data  : data
-      }));
-      options.colors.push(rgbToHex(COLORS.all));
-      
-      data = [];
-
-      //if type
-      if (!$.isEmptyObject(this.model.get('type'))){
-        _.each(this.model.get('type'), function(year) { 
-          data.push([year.year,year.percentage]);
-        });
-        dataset.push(this.lineOptions('type',{
-          data  : data
-        }));
-        options.colors.push(rgbToHex(COLORS.type));
-
-      }
-      data = [];
-      //if size
-      if (!$.isEmptyObject(this.model.get('size'))){
-        _.each(this.model.get('size'), function(year) { 
-          data.push([year.year,year.percentage]);
-        });
-        dataset.push(this.lineOptions('size',{
-          data  : data
-        }));
-        options.colors.push(rgbToHex(COLORS.size));
-
-      }
-      data = [];
-      //if entity
-      if (!$.isEmptyObject(this.model.get('entity'))){
-        _.each(this.model.get('entity'), function(year) { 
-          data.push([year.year,year.percentage]);
-        });
-        dataset.push({data:data});
-        options.colors.push(rgbToHex(COLORS.entity));
-      }
-      // axis padding in %
-      
-      var all_keys = Object.keys(this.model.get('all'));
-      options.xaxis.max =  Math.max.apply(Math, all_keys)+((all_keys.length-1)*this.axis_padding);
-      options.xaxis.min =  Math.min.apply(Math, all_keys)-((all_keys.length-1)*this.axis_padding);
-      // Now, the chart can be drawn ...
-      this.plot = $.plot( this.$('.time-plot'), dataset, options ); 
-      
-      if (this.model.get('legend')) {
-        $('.plot-wrapper-'+this.cid+' .legend').html(this.template($.extend(this.model.attributes,{report:app.Config.get('report')})));
-      }      
-    },
-    renderPdf: function(writer,item_key,attr){
-      writer.addPlot(this.plot.getCanvas(),item_key,attr);
-      
-      writer.addText(this.model.get('axis_label'),item_key+'_axis_label');
-      writer.addText(this.model.get('title'),item_key+'_title');
-      var item_graph = writer.item(item_key);
-      for (var i = 0;i<this.ticks.length;i++){
-        writer.addText(this.ticks[this.ticks.length-1-i][1],item_key+'_ticks',{offy:item_graph.h*0.70/(this.ticks.length-1)*i});        
-      }
-      var all_keys = Object.keys(this.model.get('all'));
-      for (var i = 0;i<all_keys.length;i++){
-        // tick_offset = axis_width/no_of_ticks
-        var offx = (item_graph.w*0.85*(1-2*this.axis_padding)/(all_keys.length-1)*i)+item_graph.w*0.85*this.axis_padding;
-        writer.addText(all_keys[all_keys.length-1-i],item_key+'_xticks',{offx:offx});        
-      }
-      var item_graph = writer.item(item_key + '_legend');
-      
-      // legend
-      var legend_attr = this.model.attributes;
-      var report = app.Config.get('report'); 
-    
-      var offy = 0;
-      var offx = 8;
-      if (!$.isEmptyObject(legend_attr.entity)){        
-        // draw line main
-        writer.addLine(item_key + '_legend_line',{color : COLORS.entity,offy:offy}); 
-        // add entity_label
-        writer.addText(legend_attr.entity_label,item_key + '_legend',{offx:offx})
-        offy += 4;
-      }
-      if (!$.isEmptyObject(legend_attr.type)){
-        if (report === "type"){
-          // draw line main 
-          writer.addLine(item_key + '_legend_line',{color : COLORS.type,offy:offy});
-        } else {
-          writer.addLine(item_key + '_legend_line',{color : COLORS.type,offy:offy,dash:0.66});          
-        }
-        // add type_label
-        writer.addText(legend_attr.type_label,item_key + '_legend',{offx:offx,offy:offy});
-        offy += 4;        
-      }
-      if (!$.isEmptyObject(legend_attr.size)){
-        if (report === "size"){
-          writer.addLine(item_key + '_legend_line',{color : COLORS.size,offy:offy});          
-        } else {
-          // draw line long-dashed
-          writer.addLine(item_key + '_legend_line',{color : COLORS.size,offy:offy,dash:1});
-        }
-        // add size_label
-        writer.addText(legend_attr.size_label,item_key + '_legend',{offx:offx,offy:offy});
-        offy += 4;
-      }
-      // there is always an all line
-      if (report === "all"){
-        // draw line main
-        writer.addLine(item_key + '_legend_line',{color : COLORS.all,offy:offy});        
-      } else {
-        // draw line dotted
-        writer.addLine(item_key + '_legend_line',{color : COLORS.all,offy:offy,dash:0.33});        
-      }
-      //add all_label
-      writer.addText(legend_attr.all_label,item_key + '_legend',{offx:offx,offy:offy})
-      
-    },
-    template: _.template('\
-    <ul class="legend">\
-<% if (!$.isEmptyObject(entity)){%>\
-<li class="legend-entity <% if (report === "entity"){%>legend-main<% } %>">\n\
-<span class="line"></span>\n\
-<span class="label"><%=entity_label%></span>\n\
-</li>\
-<% }%>\
-<% if (!$.isEmptyObject(type)){%>\
-<li class="legend-type <% if (report === "type"){%>legend-main<% } %>">\n\
-<span class="line"></span>\n\
-<span class="label"><%=type_label%></span>\n\
-</li>\
-<% }%>\
-<% if (!$.isEmptyObject(size)){%>\
-<li class="legend-size <% if (report === "size"){%>legend-main<% } %>">\n\
-<span class="line"></span>\n\
-<span class="label"><%=size_label%></span>\n\
-</li>\
-<% }%>\
-<li class="legend-all <% if (report === "all"){%>legend-main<% } %>">\n\
-<span class="line"></span>\n\
-<span class="label"><%=all_label%></span>\n\
-</li>\
-    </ul>\
-    ')            
-  });
- 
   models.Details = Backbone.Model.extend({
     initialize: function(){      
       this.set('updated',0);
@@ -1538,7 +1233,7 @@ template: _.template('\
       this.resetFields();
     },
     update : function(){
-      this.currentYear = parseInt(app.Config.get('year'));
+      this.currentYear = parseInt(app.Control.get('year'));
       this.currentYearData = app.Years.byYear(this.currentYear).first();
       this.currentCount = this.results.all[this.currentYear].count;
       
@@ -1553,8 +1248,8 @@ template: _.template('\
       };
       var sizeRecords,typeRecords;
       var that = this;
-      if (app.Config.get('report') === "entity") {                                   
-        var entityID = parseInt(app.Config.get('id'));
+      if (app.Control.get('report') === "entity") {                                   
+        var entityID = parseInt(app.Control.get('id'));
         var entityRecords = app.Records.byEntity(entityID);        
         var entitiesByYear = entityRecords.byYear(this.currentYear);
         if (entitiesByYear.length === 0) {
@@ -1587,13 +1282,13 @@ template: _.template('\
           results.participation.entity = entityRecords.getResults({criterion:'participation'});
         }
       }                              
-      else if (app.Config.get('report') === "type") {          
-        var typeID = app.Config.get('id');        
+      else if (app.Control.get('report') === "type") {          
+        var typeID = app.Control.get('id');        
         typeRecords = app.Records.byType(typeID);        
       } 
       // size category report
-      else if (app.Config.get('report') === "size") {
-        var sizeID = app.Config.get('id');        
+      else if (app.Control.get('report') === "size") {
+        var sizeID = app.Control.get('id');        
         sizeRecords = app.Records.bySize(sizeID);        
       }
       
@@ -1675,7 +1370,7 @@ template: _.template('\
               criteria : 'single',
               year : this.currentYear,
               id : 'geref',
-              report : app.Config.get('report'),
+              report : app.Control.get('report'),
               results : results.geref,
               title : app.Criteria.findWhere({id:'geref'}).get('title').trim(),
               summary : this.currentYearData.get('summarygeref'),
@@ -1684,7 +1379,7 @@ template: _.template('\
               criteria : 'group',
               year : this.currentYear,
               id : 'ge',
-              report : app.Config.get('report'),
+              report : app.Control.get('report'),
               results : results.ge,
               title : app.CriteriaGroups.findWhere({id:'GE'}).get('title').trim(),
               summary : this.currentYearData.get('summarygeelements'),
@@ -1693,7 +1388,7 @@ template: _.template('\
               criteria : 'single',
               year : this.currentYear,
               id : 'eeoref',
-              report : app.Config.get('report'),
+              report : app.Control.get('report'),
               results : results.eeoref,
               title : app.Criteria.findWhere({id:'eeoref'}).get('title').trim(),
               summary : this.currentYearData.get('summaryeeoref'),
@@ -1702,7 +1397,7 @@ template: _.template('\
               criteria : 'single',
               year : this.currentYear,
               id : 'review',
-              report : app.Config.get('report'),
+              report : app.Control.get('report'),
               results : results.review,
               title : app.Criteria.findWhere({id:'review'}).get('title').trim(),
               summary : this.currentYearData.get('summaryreview'),
@@ -1711,7 +1406,7 @@ template: _.template('\
               criteria : 'group',
               year : this.currentYear,
               id : 'wp',
-              report : app.Config.get('report'),
+              report : app.Control.get('report'),
               results : results.wp,
               title : app.CriteriaGroups.findWhere({id:'WP'}).get('title').trim(),
               summary : this.currentYearData.get('summarywp'),
@@ -1720,7 +1415,7 @@ template: _.template('\
               criteria : 'single',
               year : this.currentYear,
               id : 'participation',
-              report : app.Config.get('report'),
+              report : app.Control.get('report'),
               results : results.geref,
               title : app.Criteria.findWhere({id:'participation'}).get('title').trim(),
               summary : this.currentYearData.get('summaryparticipation'),
@@ -1729,7 +1424,7 @@ template: _.template('\
         });
       
       // triggers the view rendering
-      this.set('updated',app.Config.get('id')+app.Config.get('year'));      
+      this.set('updated',app.Control.get('id')+app.Control.get('year'));      
     },
     resetFields : function(){
       this.set({
@@ -1740,7 +1435,7 @@ template: _.template('\
   views.Details = Backbone.View.extend({
     initialize: function () {
         this.subviews = [];        
-        this.render();        
+        this.render();
         this.listenTo(this.model, 'change:updated', this.render);        
     },
     render: function() {
@@ -1749,13 +1444,14 @@ template: _.template('\
       var that = this;
       //subviews
       _.each(this.model.get('subview_models'), function(sub_model){
-        var subview = (sub_model.get('criteria') === 'single' )
-           ? new views.Criterion({model:sub_model})
-           : new views.CriteriaGroup({model:sub_model});
+        var subview = new views.Criterion({model:sub_model});
         that.subviews.push(subview);
         that.$el.append(subview.render().el);
+      });
+      _.each(this.subviews, function(subview){      
         subview.renderGraphs();
-      })
+        subview.accordionClose(0);
+      });
       return this;
     },
     renderPdf : function (writer, attr){
@@ -1882,198 +1578,547 @@ template: _.template(''),
   views.Criterion = Backbone.View.extend({
     initialize: function () {
         this.subviews = {};
-    },    
-    render: function() {
-      
-      this.$el.html(this.template(this.model.attributes));
-      
-      // subview averages 
-      this.subviews.averagesView = new views.Averages({model:this.model.get('modelAverages')});
-      this.$('.averages-panel').append( this.subviews.averagesView.render().el );                 
-      
-      // subview averages time graph
-      this.subviews.averagesGraphView = new views.AveragesTimeGraph({model:this.model.get('modelAveragesTime')});            
-      this.$('.criteria-time-graph').append( this.subviews.averagesGraphView.render().el );
-      this.$('.accordion-bottom').hide();
-      return this;
     },
-    renderGraphs : function (){
-      this.subviews.averagesGraphView.renderGraph();
+    events : {
+      "click .accordion-toggle" : "accordionToggle",      
     },
-    renderPdf : function (writer, attr){
-      console.log('Criterion.renderPdf');
-      writer.addLine('half_line',$.extend(attr,{color:COLORS.dark}));
-      writer.addCriteriaTitle(this.model.get('title'),this.model.get('score'),this.model.get('report'),attr);   
-      // skip averages when not 'all' present
-      if(this.model.get('modelAverages').get('all') > -1){
-        this.subviews.averagesView.renderPdf(writer,'averages',{x:attr.x,y:attr.y+writer.defaults.offsets.averages.single});        
-        writer.addText(this.model.get('summary'),'half',{x:attr.x,y:attr.y+writer.defaults.offsets.summary.single});
-      } else {
-        writer.addText(this.model.get('summary'),'half',{x:attr.x,y:attr.y+writer.defaults.offsets.summary.single - 15});
-      }
-      
-    },            
-    template : _.template('\
-  <div class="criteria row">\n\
-  <div class="accordion">\n\
-  <div class="accordion-top">\n\
-    <div class="col-left">\n\
-      <div class="score">\n\
-        <%= score %>\n\
-      </div>\n\
-      <div class="title"><%= title %></div>\n\
-  </div>\n\
-    <div class="col-right">\n\
-      <div class="averages-panel"></div>\n\
-    </div>\n\
-  </div>\n\
-  <div class="accordion-bottom">\n\
-    <div class="col-left">\n\
-      <div class="summary-panel"><%= summary %></div>\n\
-    </div>\n\
-    <div class="col-right">\n\
-      <div class="criteria-time-graph"></div><!-- #overview-time-graph -->\n\
-    </div>\n\
-  </div>\n\
-  </div>\n\
-  </div>\n\
-'),            
-  });
-  views.CriteriaGroup = Backbone.View.extend({
-    initialize: function () {
-        this.subviews = {};
-    },    
+    accordionToggle: function (event) {
+      event.preventDefault();
+       if (this.$('.accordion').hasClass('open')){
+         this.accordionClose();
+       } else {
+          app.Control.accordionCloseAll();
+          this.accordionOpen();
+       }
+    },
+    accordionOpen:function(){   
+      var that = this;   
+      this.$('.accordion-bottom').slideDown(function (){
+        that.$('.accordion').addClass('open');      
+      });      
+    },
+    accordionClose:function(duration){
+      duration = typeof duration !== 'undefined' ? duration : 400;
+      var that = this; 
+      this.$('.accordion-bottom').slideUp(duration,function(){
+        that.$('.accordion').removeClass('open');
+      });      
+    },
     render: function() {
       
       this.$el.html(this.template(this.model.attributes));
       var that = this;
-      var i = 0;
-      _.each(this.model.attributes.all_group_elements,function(all){          
-       
-        if (that.model.get('report') === 'all'){
-          that.$('.group-elements ul').append(that.template_elements_all($.extend(all,{year:that.model.attributes.year})));      
-        }
-        else if (that.model.get('report') === 'entity'){      
-          that.$('.group-elements ul').append(that.template_elements_entity($.extend(that.model.attributes,{index:i})));
-        }
-        else if (that.model.get('report') === 'type'){      
-          that.$('.group-elements ul').append(that.template_elements_type($.extend(that.model.attributes,{index:i})));
-        }
-        else if (that.model.get('report') === 'size'){      
-          that.$('.group-elements ul').append(that.template_elements_size($.extend(that.model.attributes,{index:i})));
-        }
-        i++;
-      });      
+      
+      if (this.model.get('criteria') === 'group' ) {
+        var i = 0;
+        _.each(this.model.attributes.all_group_elements,function(all){          
+
+          if (that.model.get('report') === 'all'){
+            that.$('.group-elements').append(that.template_elements_all($.extend(all,{year:that.model.attributes.year})));      
+          }
+          else if (that.model.get('report') === 'entity'){      
+            that.$('.group-elements').append(that.template_elements_entity($.extend(that.model.attributes,{index:i})));
+          }
+          else if (that.model.get('report') === 'type'){      
+            that.$('.group-elements').append(that.template_elements_type($.extend(that.model.attributes,{index:i})));
+          }
+          else if (that.model.get('report') === 'size'){      
+            that.$('.group-elements').append(that.template_elements_size($.extend(that.model.attributes,{index:i})));
+          }
+          i++;
+        });
+      }
       // subview averages 
       this.subviews.averagesView = new views.Averages({model:this.model.get('modelAverages')});
       this.$('.averages-panel').append( this.subviews.averagesView.render().el );                 
       
       // subview averages time graph
       this.subviews.averagesGraphView = new views.AveragesTimeGraph({model:this.model.get('modelAveragesTime')});            
-      this.$('.criteria-time-graph').append( this.subviews.averagesGraphView.render().el );
-      this.$('.accordion-bottom').hide();
+      this.$('.criteria-time-graph').append( this.subviews.averagesGraphView.render().el );                  
       
       return this;
     },
-    renderGraphs : function (){
+    renderGraphs : function () {
       this.subviews.averagesGraphView.renderGraph();
     },
     renderPdf : function (writer, attr){
-      console.log('CriteriaGroup.renderPdf');
+      console.log('Criteria.renderPdf');
       writer.addLine('half_line',$.extend(attr,{color:COLORS.dark}));
       writer.addCriteriaTitle(this.model.get('title'),this.model.get('score'),this.model.get('report'),attr);      
       
+      if (this.model.get('criteria') === 'single' ) {
+        if(this.model.get('modelAverages').get('all') > -1){
+          this.subviews.averagesView.renderPdf(writer,'averages',{x:attr.x,y:attr.y+writer.defaults.offsets.averages.single});        
+          writer.addText(this.model.get('summary'),'half',{x:attr.x,y:attr.y+writer.defaults.offsets.summary.single});
+        } else {
+          writer.addText(this.model.get('summary'),'half',{x:attr.x,y:attr.y+writer.defaults.offsets.summary.single - 15});
+        }        
+      } else if (this.model.get('criteria') === 'group' ) {
      // lets draw the single items
-      var that = this;
-      var i = 0;
-      var elements = [];
+        var that = this;
+        var i = 0;
+        var elements = [];
+
+        if (this.model.get('report') === 'all'){
+          elements = this.model.get("all_group_elements");      
+        } else if (this.model.get('report') === 'entity'){
+          elements = this.model.get("entity_group_elements");      
+        } else if (this.model.get('report') === 'type'){
+          elements = this.model.get("type_group_elements");      
+        } else if (this.model.get('report') === 'size'){
+          elements = this.model.get("size_group_elements");      
+        } 
+        var yoffset = 20;
+        for (var i = 0;i<elements.length;i++){
+          var element = elements[i];
+          // title, score        
+          writer.addGroupCriteria(element.title,element.results[that.model.attributes.year].percentage,this.model.get('report'),{x:attr.x,y:attr.y+yoffset});
+          yoffset += 6.5;
+          if (i < elements.length-1){
+            writer.addLine('half_line',{x:attr.x,y:attr.y+yoffset})
+          }
+        };
+
+        writer.addLine('half_line',{x:attr.x,y:attr.y+writer.defaults.offsets.averages.group-3});      
       
-      if (this.model.get('report') === 'all'){
-        elements = this.model.get("all_group_elements");      
-      } else if (this.model.get('report') === 'entity'){
-        elements = this.model.get("entity_group_elements");      
-      } else if (this.model.get('report') === 'type'){
-        elements = this.model.get("type_group_elements");      
-      } else if (this.model.get('report') === 'size'){
-        elements = this.model.get("size_group_elements");      
-      } 
-      var yoffset = 20;
-      for (var i = 0;i<elements.length;i++){
-        var element = elements[i];
-        // title, score        
-        writer.addGroupCriteria(element.title,element.results[that.model.attributes.year].percentage,this.model.get('report'),{x:attr.x,y:attr.y+yoffset});
-        yoffset += 6.5;
-        if (i < elements.length-1){
-          writer.addLine('half_line',{x:attr.x,y:attr.y+yoffset})
+        // skip averages when not 'all' present
+        if(this.model.get('modelAverages').get('all') > -1){
+          this.subviews.averagesView.renderPdf(writer,'averages',{x:attr.x,y:attr.y+writer.defaults.offsets.averages.group});        
+          writer.addText(this.model.get('summary'),'half',{x:attr.x,y:attr.y+writer.defaults.offsets.summary.group});
+        } else {
+          writer.addText(this.model.get('summary'),'half',{x:attr.x,y:attr.y+writer.defaults.offsets.summary.group - 15});
         }
-      };
-      
-      writer.addLine('half_line',{x:attr.x,y:attr.y+writer.defaults.offsets.averages.group-3});      
-      
-      // skip averages when not 'all' present
-      if(this.model.get('modelAverages').get('all') > -1){
-        this.subviews.averagesView.renderPdf(writer,'averages',{x:attr.x,y:attr.y+writer.defaults.offsets.averages.group});        
-        writer.addText(this.model.get('summary'),'half',{x:attr.x,y:attr.y+writer.defaults.offsets.summary.group});
-      } else {
-        writer.addText(this.model.get('summary'),'half',{x:attr.x,y:attr.y+writer.defaults.offsets.summary.group - 15});
       }      
     },            
     template : _.template('\
-  <div class="criteria criteria-group row">\n\
-  <div class="accordion">\n\
-  <div class="accordion-top">\n\
-    <div class="col-left">\n\
-      <div class="score">\n\
-        <%= score %>%\n\
-      </div>\n\
-      <div class="title"><%= title %></div>\n\
-  </div>\n\
-    <div class="col-right">\n\
-      <div class="averages-panel"></div>\n\
-    </div>\n\
-  </div>\n\
-  <div class="accordion-bottom">\n\
-    <div class="group-elements"><ul></ul></div>\n\
-    <div class="col-left">\n\
-      <div class="summary-panel"><%= summary %></div>\n\
-    </div>\n\
-    <div class="col-right">\n\
-      <div class="criteria-time-graph"></div><!-- #overview-time-graph -->\n\
-    </div>\n\
-  </div>\n\
-  </div>\n\
-  </div>\n\
+  <div class="criteria row">\n\
+    <div class="accordion">\n\
+      <div class="accordion-top row">\n\
+        <a href="#" class="accordion-open accordion-toggle">More</a>\n\
+        <a href="#" class="accordion-close accordion-toggle">Less</a>\n\
+        <div class="col-left">\n\
+          <div class="title-score-wrap">\n\
+          <div class="title-score">\n\
+            <% if (report === "entity" && score === 100) { %>\n\
+              <span class="icon-score-pass"></span>\n\
+            <% } else if (report === "entity" && score === 0) { %>\n\
+              <span class="icon-score-fail"></span>\n\
+            <% } else { %>\n\
+            <span class="icon-score"></span><span class="the-score"><%= score %>%</span>\n\
+            <% } %>\n\
+          </div>\n\
+          <div class="title"><%= title %></div>\n\
+        </div><!-- .title-score-wrap -->\n\
+        </div><!-- .col-left -->\n\
+        <div class="col-right">\n\
+          <div class="averages-panel"></div>\n\
+        </div><!-- .col-right -->\n\
+      </div><!-- .accordion-top -->\n\
+      <div class="accordion-bottom row">\n\
+        <% if (criteria === "group") { %><div class="group-elements"></div><% } %>\n\
+        <div class="col-left">\n\
+          <div class="summary-panel"><%= summary %></div>\n\
+        </div><!-- .col-left -->\n\
+        <div class="col-right">\n\
+          <div class="criteria-time-graph"></div><!-- .criteria-time-graph -->\n\
+        </div><!-- .col-right -->\n\
+      </div><!-- .accordion-bottom -->\n\
+    </div><!-- .accordion-->\n\
+  </div><!-- .criteria -->\n\
 '), 
     template_elements_all : _.template('\
-<li class="item">\n\
-<span class="score"><%= results[year].percentage %>%</span>\n\
-<span class="title"><%= title %></span>\n\
-</li>\
+<div class="item row">\n\
+<div class="col-1"><span class="score-all active"><%= results[year].percentage %>%</span></div>\n\
+<div class="col-2"><span class="title"><%= title %></span></div>\n\
+</div>\n\
 '),
     template_elements_entity : _.template('\
-<li class="item">\n\
-<span class="score"><%= entity_group_elements[index].results[year].percentage %>%</span>\n\
-<span class="title"><%= entity_group_elements[index].title %></span>\n\
-<span class="score_type"><%= type_group_elements[index].results[year].percentage %>%</span>\n\
-<span class="score_size"><%= size_group_elements[index].results[year].percentage %>%</span>\n\
-<span class="score_all"><%= all_group_elements[index].results[year].percentage %>%</span>\n\
-</li>\
+<div class="item row">\n\
+<div class="col-1">\n\
+<% if (entity_group_elements[index].results[year].percentage >= 50 ) { %>\n\
+<span class="score-entity"><span class="icon-score-pass-small"></span></span>\n\
+<% } else if (entity_group_elements[index].results[year].percentage < 50 ) { %>\n\
+<span class="score"><span class="icon-score-fail-small"></span></span>\n\
+<% } %>\n\
+</div>\n\
+<div class="col-2"><span class="title"><%= entity_group_elements[index].title %></span></div>\n\
+<div class="col-3"><span class="score-type"><%= type_group_elements[index].results[year].percentage %>%</span></div>\n\
+<div class="col-4"><span class="score-size"><%= size_group_elements[index].results[year].percentage %>%</span></div>\n\
+<div class="col-5"><span class="score-all"><%= all_group_elements[index].results[year].percentage %>%</span></div>\n\
+</div>\
 '),
     template_elements_type : _.template('\
-<li class="item">\n\
-<span class="score"><%= type_group_elements[index].results[year].percentage %>%</span>\n\
-<span class="title"><%= type_group_elements[index].title %>%</span>\n\
-<span class="score_all"><%= all_group_elements[index].results[year].percentage %>%</span>\n\
-</li>\
+<div class="item row">\n\
+<div class="col-1"><span class="score-type active"><%= type_group_elements[index].results[year].percentage %>%</span></div>\n\
+<div class="col-2"><span class="title"><%= type_group_elements[index].title %></span></div>\n\
+<div class="col-3"><span class="score-all"><%= all_group_elements[index].results[year].percentage %>%</span></div>\n\
+</div>\
 '),
     template_elements_size : _.template('\
-<li class="item">\n\
-<span class="score"><%= size_group_elements[index].results[year].percentage %>%</span>\n\
-<span class="title"><%= size_group_elements[index].title %>%</span>\n\
-<span class="score_all"><%= all_group_elements[index].results[year].percentage %>%</span>\n\
-</li>\
+<div class="item row">\n\
+<div class="col-1"><span class="score-size active"><%= size_group_elements[index].results[year].percentage %>%</span></div>\n\
+<div class="col-2"><span class="title"><%= size_group_elements[index].title %></span></div>\n\
+<div class="col-3"><span class="score-all"><%= all_group_elements[index].results[year].percentage %>%</span></div>\n\
+</div>\
 '),
   });
+  
+ /* 
+  * AVERAGES CURRENT YEAR
+  */  
+  models.Averages = Backbone.Model.extend({
+    defaults: {
+      title : 'Average compliance of',
+      all : -1, 
+      type: -1, 
+      size: -1, 
+      all_label : 'All entities', 
+      type_label: 'Same type', 
+      size_label: 'Same size', 
+      all_color : rgbToHex(COLORS.all),
+      type_color : rgbToHex(COLORS.type),
+      size_color : rgbToHex(COLORS.size),         
+    },    
+  }); 
+  views.Averages = Backbone.View.extend({
+    initialize : function (options) {
+      this.options = options || {};
+    },
+    render : function(){
+      console.log('averages.render');
+      if (this.model.get('all') > -1 || this.model.get('type') > -1 || this.model.get('size') > -1) {
+        this.$el.html(this.template(this.model.attributes));
+      }
+      return this;      
+    },            
+    renderPdf: function(writer,item_key,attr){      
+      var offset = {x:0,y:0};
+      var label_margin = {top:2,right:16};
+      
+      // add subview title
+      offset.y += writer.addText(this.model.get('title'),item_key,attr);
+      offset.y += 1; 
+      // get item to calculate offsets
+      var item = writer.item(item_key,attr);           
+      
+      if(this.model.get('type') > -1){
+        writer.addText(this.model.get('type_label'),'default',{x:item.x+offset.x,y:item.y+offset.y + label_margin.top});
+        writer.addText(this.model.get('type')+'%','default',{x:item.x+offset.x + label_margin.right,y:item.y+offset.y + label_margin.top,style:'bold',color:COLORS.type});
+        offset.x += writer.addAverageBar(this.model.get('type'),{x:item.x+offset.x,y:item.y+offset.y,color:COLORS.type});        
+      }
+      if(this.model.get('size') > -1){
+        writer.addText(this.model.get('size_label'),'default',{x:item.x+offset.x,y:item.y+offset.y + label_margin.top});
+        writer.addText(this.model.get('size')+'%','default',{x:item.x+offset.x + label_margin.right,y:item.y+offset.y + label_margin.top,style:'bold',color:COLORS.size});        
+        offset.x += writer.addAverageBar(this.model.get('size'),{x:item.x+offset.x,y:item.y+offset.y,color:COLORS.size});
+      }
+      if(this.model.get('all') > -1){
+        writer.addText(this.model.get('all_label'),'default',{x:item.x+offset.x,y:item.y+offset.y + label_margin.top});
+        writer.addText(this.model.get('all')+'%','default',{x:item.x+offset.x + label_margin.right,y:item.y+offset.y + label_margin.top,style:'bold',color:COLORS.all});        
+        offset.x += writer.addAverageBar(this.model.get('all'),{x:item.x+offset.x,y:item.y+offset.y,color:COLORS.all});
+      }
+      offset.y += 9;
+      
+      writer.addLine('half_line',{x:item.x,y:item.y+offset.y});
+    },
+    template: _.template('\
+    <div class="averages">\n\
+      <div class="averages-title"><%=title%></div>\n\
+      <ul class="averages-list">\n\
+      <% if (type > -1) {%>\n\
+      <li>\n\
+        <div class="average-type averages-full"><span class="averages-score" style="width:<%=type%>%;background:<%=type_color%>;"></span></div>\n\
+        <div><%=type_label%> <%=type%>%</div>\n\
+      </li><% }%>\n\
+      <% if (size > -1) {%>\n\
+      <li>\n\
+        <div class="average-size averages-full"><span class="averages-score" style="width:<%=size%>%;background:<%=size_color%>;"></span></div>\n\
+        <div><%=size_label%> <%=size%>%</div>\n\
+      </li><% }%>\n\
+      <% if (all > -1) {%>\n\
+      <li>\n\
+        <div class="average-all averages-full"><span class="averages-score" style="width:<%=all%>%;background:<%=all_color%>;"></span></div>\n\
+        <div><%=all_label%> <%=all%>%</div>\n\
+      </li><% }%>\n\
+    </div>\n\
+    ')            
+  });
+ /* 
+  * AVERAGES OVER TIME
+  */    
+  models.AveragesTime = Backbone.Model.extend({
+    defaults: {
+      title : 'Compliance over time',
+      all   : {}, 
+      type  : {}, 
+      size  : {},
+      entity: {},
+      all_label   : 'All entities', 
+      type_label  : 'Same type', 
+      size_label  : 'Same size',       
+      entity_label: 'Current entity',
+      legend:true,
+      axis_label: 'Compliance'
+    },
+  });  
+  views.AveragesTimeGraph = Backbone.View.extend({ 
+    initialize : function (options) {
+      this.options = options || {};
+      this.ticks = [[0,'0%'],[50,'50%'],[100,'100%']];
+      this.axis_padding = 0.05;
+    },
+    attributes: { class: 'time-graph'},
+
+    plotOptions: {
+      canvas: false,
+      yaxis: {
+        tickColor:rgbToHex(COLORS.dark),
+        color:rgbToHex(COLORS.dark),
+        min:0,
+        max:100, 
+        position:'right',
+        tickLength:5,
+        font : {
+          color: rgbToHex(COLORS.dark),
+          size:13
+        },
+        autoscaleMargin:0
+      },
+      xaxis: {
+        color:rgbToHex(COLORS.dark),
+        tickSize:1,
+        tickDecimals:0,
+        tickLength:0,
+        font : {
+          color: rgbToHex(COLORS.dark),
+          size:13,
+          weight:'bold'
+        },
+        autoscaleMargin:0
+      },
+      legend: { 
+        show: false
+      },
+      grid: { 
+        hoverable: true, 
+        clickable: true, 
+        autoHighlight: true, 
+        backgroundColor: '#ffffff',
+        show: true,
+        aboveData: false,
+        margin: 0,
+        labelMargin: 10,
+        markings: [],
+        borderWidth: {top:0,right:1,bottom:1,left:0},
+        borderColor: rgbToHex(COLORS.dark),
+        color: rgbToHex(COLORS.dark),
+        minBorderMargin: 0,
+        axisMargin:0
+      },      
+      series: {
+        shadowSize : 0,
+      }
+    },
+
+    render: function() {
+      this.$el.html(this.template($.extend(this.model.attributes,{cid:this.cid})));
+      return this;
+    },
+    lineOptions:function(report,options){
+      var line_width  = 1.7;
+      var line_width_main  = 2;
+      if (report === 'all') { 
+        if(app.Control.get('report') === 'all') {
+          return $.extend(options,{lines:{show:true,lineWidth:line_width_main}});
+        } else {
+          return $.extend(options,{dashes:{show:true,lineWidth:line_width,dashLength:2}});
+        }
+      }
+      else if (report === 'type') { 
+        if(app.Control.get('report') === 'type') {
+          return $.extend(options,{lines:{show:true,lineWidth:line_width_main}});
+        } else {
+          return $.extend(options,{dashes:{show:true,lineWidth:line_width,dashLength:5}});
+        }
+      }
+      else if (report === 'size') { 
+        if(app.Control.get('report') === 'size') {
+          return $.extend(options,{lines:{show:true,lineWidth:line_width_main}});
+        } else {
+          return $.extend(options,{dashes:{show:true,lineWidth:line_width,dashLength:8}});
+        }
+      }
+      else if (report === 'entity') { 
+        return $.extend(options,{lines:{show:true,lineWidth:line_width_main}});
+      }
+      
+    },       
+    renderGraph: function() {
+
+      var options = _.clone(this.plotOptions);
+      options.yaxis.ticks = this.ticks;
+      
+      var data = [];
+      var dataset = [];
+      options.colors = [];      
+      //all entities
+      _.each(this.model.get('all'), function(year) { 
+        data.push([year.year,year.percentage]);
+      });
+      dataset.push(
+        this.lineOptions('all',{
+          data  : data
+      }));
+      options.colors.push(rgbToHex(COLORS.all));
+      
+      data = [];
+
+      //if type
+      if (!$.isEmptyObject(this.model.get('type'))){
+        _.each(this.model.get('type'), function(year) { 
+          data.push([year.year,year.percentage]);
+        });
+        dataset.push(this.lineOptions('type',{
+          data  : data
+        }));
+        options.colors.push(rgbToHex(COLORS.type));
+
+      }
+      data = [];
+      //if size
+      if (!$.isEmptyObject(this.model.get('size'))){
+        _.each(this.model.get('size'), function(year) { 
+          data.push([year.year,year.percentage]);
+        });
+        dataset.push(this.lineOptions('size',{
+          data  : data
+        }));
+        options.colors.push(rgbToHex(COLORS.size));
+
+      }
+      data = [];
+      //if entity
+      if (!$.isEmptyObject(this.model.get('entity'))){
+        _.each(this.model.get('entity'), function(year) { 
+          data.push([year.year,year.percentage]);
+        });
+        dataset.push(this.lineOptions('entity',{
+          data  : data
+        }));
+        options.colors.push(rgbToHex(COLORS.entity));
+      }
+      // axis padding in %
+      
+      var all_keys = Object.keys(this.model.get('all'));
+      options.xaxis.max =  Math.max.apply(Math, all_keys)+((all_keys.length-1)*this.axis_padding);
+      options.xaxis.min =  Math.min.apply(Math, all_keys)-((all_keys.length-1)*this.axis_padding);
+      // Now, the chart can be drawn ...
+      this.plot = $.plot( this.$('.time-plot'), dataset, options ); 
+      
+      if (this.model.get('legend')) {
+        $('.plot-wrapper-'+this.cid+' .legend').html(this.template_legend($.extend(this.model.attributes,{report:app.Control.get('report')})));
+      }      
+    },
+    renderPdf: function(writer,item_key,attr){
+      writer.addPlot(this.plot.getCanvas(),item_key,attr);
+      
+      writer.addText(this.model.get('axis_label'),item_key+'_axis_label');
+      writer.addText(this.model.get('title'),item_key+'_title');
+      var item_graph = writer.item(item_key);
+      for (var i = 0;i<this.ticks.length;i++){
+        writer.addText(this.ticks[this.ticks.length-1-i][1],item_key+'_ticks',{offy:item_graph.h*0.70/(this.ticks.length-1)*i});        
+      }
+      var all_keys = Object.keys(this.model.get('all'));
+      for (var i = 0;i<all_keys.length;i++){
+        // tick_offset = axis_width/no_of_ticks
+        var offx = (item_graph.w*0.85*(1-2*this.axis_padding)/(all_keys.length-1)*i)+item_graph.w*0.85*this.axis_padding;
+        writer.addText(all_keys[all_keys.length-1-i],item_key+'_xticks',{offx:offx});        
+      }
+      var item_graph = writer.item(item_key + '_legend');
+      
+      // legend
+      var legend_attr = this.model.attributes;
+      var report = app.Control.get('report'); 
+    
+      var offy = 0;
+      var offx = 8;
+      if (!$.isEmptyObject(legend_attr.entity)){        
+        // draw line main
+        writer.addLine(item_key + '_legend_line',{color : COLORS.entity,offy:offy}); 
+        // add entity_label
+        writer.addText(legend_attr.entity_label,item_key + '_legend',{offx:offx})
+        offy += 4;
+      }
+      if (!$.isEmptyObject(legend_attr.type)){
+        if (report === "type"){
+          // draw line main 
+          writer.addLine(item_key + '_legend_line',{color : COLORS.type,offy:offy});
+        } else {
+          writer.addLine(item_key + '_legend_line',{color : COLORS.type,offy:offy,dash:0.66});          
+        }
+        // add type_label
+        writer.addText(legend_attr.type_label,item_key + '_legend',{offx:offx,offy:offy});
+        offy += 4;        
+      }
+      if (!$.isEmptyObject(legend_attr.size)){
+        if (report === "size"){
+          writer.addLine(item_key + '_legend_line',{color : COLORS.size,offy:offy});          
+        } else {
+          // draw line long-dashed
+          writer.addLine(item_key + '_legend_line',{color : COLORS.size,offy:offy,dash:1});
+        }
+        // add size_label
+        writer.addText(legend_attr.size_label,item_key + '_legend',{offx:offx,offy:offy});
+        offy += 4;
+      }
+      // there is always an all line
+      if (report === "all"){
+        // draw line main
+        writer.addLine(item_key + '_legend_line',{color : COLORS.all,offy:offy});        
+      } else {
+        // draw line dotted
+        writer.addLine(item_key + '_legend_line',{color : COLORS.all,offy:offy,dash:0.33});        
+      }
+      //add all_label
+      writer.addText(legend_attr.all_label,item_key + '_legend',{offx:offx,offy:offy})
+      
+    },
+    template: _.template('\
+<div class="plot-wrapper plot-wrapper-<%= cid %>">\n\
+<div class="averages-title"><%= title %></div>\n\
+<div class="xaxis-label"><%= axis_label %></div>\n\
+<div class="time-plot"></div>\n\
+<div class="legend"></div>\n\
+</div>\
+'),
+    template_legend: _.template('\
+    <ul class="legend-list">\
+<% if (!$.isEmptyObject(entity)){%>\
+<li class="legend-entity <% if (report === "entity"){%>legend-main<% } %>">\n\
+<span class="line"></span>\n\
+<span class="legend-label"><%=entity_label%></span>\n\
+</li>\
+<% }%>\
+<% if (!$.isEmptyObject(type)){%>\
+<li class="legend-type <% if (report === "type"){%>legend-main<% } %>">\n\
+<span class="line"></span>\n\
+<span class="legend-label"><%=type_label%></span>\n\
+</li>\
+<% }%>\
+<% if (!$.isEmptyObject(size)){%>\
+<li class="legend-size <% if (report === "size"){%>legend-main<% } %>">\n\
+<span class="line"></span>\n\
+<span class="legend-label"><%=size_label%></span>\n\
+</li>\
+<% }%>\
+<li class="legend-all <% if (report === "all"){%>legend-main<% } %>">\n\
+<span class="line"></span>\n\
+<span class="legend-label"><%=all_label%></span>\n\
+</li>\
+    </ul>\
+    ')            
+  });
+  
+  
   
   views.Footer = Backbone.View.extend({
     render: function() {},
@@ -2121,34 +2166,35 @@ template: _.template(''),
         console.log('route:report');
 
         // Parse hash
-        var filter = route.split('-');        
-        app.Config    = app.Config || new models.Config();
-        app.Overview  = app.Overview || new models.Overview();
-        app.Details   = app.Details || new models.Details();
+        var filter = route.split('-');   
+        // create control view
+        app.Control    = app.Control || new models.Control();
         //default to all entities
         if ($.inArray(filter[0],['all','entity','type','size']) === -1 || filter[1] === 'none' || filter[1] === '') {
           this.navigate(year + '/report/all-entities', {trigger: true});
         } else {
-          app.Config.set({year:year,report:filter[0],id:filter[1]});
+          app.Control.set({year:year,report:filter[0],id:filter[1]});
         }
-        
+        // set report specific classes for css
         $('#report').removeClass (function (index, css) {
           return (css.match (/\breport-\S+/g) || []).join(' ');
         });
-        $('#report').addClass('report-'+filter[0]);
-        $('#report').addClass('report-id-'+filter[1]);
+        $('#report').addClass('report-'+filter[0]).addClass('report-id-'+filter[1]);
         
-        // updating models >>> trigger view render
+        // create other models if necessary
+        app.Overview      = app.Overview       || new models.Overview();
+        app.Details       = app.Details        || new models.Details();
+        
+        // update models >>> trigger view render
         app.Overview.update();
         app.Details.update();
         
-        // load views if not already loaded
-        app.viewsIntro    = app.viewsIntro     || new views.Intro({ el: $("#intro"), model:new models.Intro() });
-        app.viewsTools    = app.viewsTools     || new views.Tools({ el: $("#tools"), model:app.Config });                
-        app.viewsOverview = app.viewsOverview  || new views.Overview({ el: $("#overview"), model: app.Overview});
-        app.viewsDetails  = app.viewsDetails   || new views.Details({ el: $("#details"), model: app.Details});
-        app.viewsFooter   = app.viewsFooter    || new views.Footer({ el: $("#footer"), model:app.Config});
-  
+        // create views if necessary
+        app.viewsIntro    = app.viewsIntro     || new views.Intro(    { el: $("#intro"),    model: new models.Intro() });
+        app.viewsTools    = app.viewsTools     || new views.Tools(    { el: $("#tools"),    model: app.Control });                
+        app.viewsOverview = app.viewsOverview  || new views.Overview( { el: $("#overview"), model: app.Overview});
+        app.viewsDetails  = app.viewsDetails   || new views.Details(  { el: $("#details"),  model: app.Details});        
+        app.viewsFooter   = app.viewsFooter    || new views.Footer(   { el: $("#footer"),   model: app.Control});
     },
 
   });
@@ -2457,17 +2503,12 @@ template: _.template(''),
       } else if (score > 99 ) {
         score_offset = 1.2;
       }
-      if (report === 'entity'){        
-        if (score === 100 ) {
+      if (report === 'entity' && score === 100 ) {
           this.addCircle({x:attr.x+6,y:attr.y+9.8,r:6,color:COLORS[report]});
           this.addTick({x:attr.x,y:attr.y+4,color:COLORS.white});          
-        } else if (score === 0 ) {
+        } else if (report === 'entity' && score === 0 ) {
           this.addCircle({x:attr.x+6,y:attr.y+9.8,r:6,color:COLORS.lighter})
-          this.addCross({x:attr.x,y:attr.y+4,color:COLORS.entity});
-        } else {
-          this.addCircle({x:attr.x+6,y:attr.y+9.8,r:6,color:COLORS[report]});
-          this.addText(score + '%','detail_score',{x:attr.x+score_offset,y:attr.y+this.defaults.offsets.detail_title.y,yalign:'center'});
-        }         
+          this.addCross({x:attr.x,y:attr.y+4,color:COLORS.entity});                 
       } else {
         this.addCircle({x:attr.x+6,y:attr.y+9.8,r:6,color:COLORS[report]});
         this.addText(score + '%','detail_score',{x:attr.x+score_offset,y:attr.y+this.defaults.offsets.detail_title.y,yalign:'center'});
@@ -2504,7 +2545,7 @@ template: _.template(''),
   
   function showOnLoad(s){
     $('.loading.'+s).hide();
-    $('.waiting.'+s).removeClass('waiting').css("visibility","visible").hide().fadeIn(2000);
+    $('.waiting.'+s).removeClass('waiting').css("visibility","visible");//.hide().show();
   }
   function componentToHex(c) {
     var hex = c.toString(16);

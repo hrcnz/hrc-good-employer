@@ -56,72 +56,11 @@ textarea {
     padding: 0.2em 0;
 }
 
-
-/* ===== Initializr Styles ==================================================
-   Author: Jonathan Verrecchia - verekia.com/initializr/responsive-template
-   ========================================================================== */
-
-body {
-    font: 13px/19px Helvetica, Helvetica Neue, Arial;
-}
-
-.wrapper {
-    width: 90%;
-    margin: 0 5%;
-}
-
-/* ==============
-    MOBILE: Menu
-   ============== */
-
-nav ul {
-    margin: 0;
-    padding: 0;
-}
-
-nav a {
-    display: block;
-    margin-bottom: 10px;
-    padding: 15px 0;
-
-    text-align: center;
-    text-decoration: none;
-    font-weight: bold;
-
-    color: white;
-    background: #e44d26;
-}
-
-nav a:hover,
-nav a:visited {
-    color: white;
-}
-
-nav a:hover {
-    text-decoration: underline;
-}
-
-/* ==============
-    MOBILE: Main
-   ============== */
-
-.footer-container footer {
-    color: white;
-    padding: 20px 0;
-}
-
-/* ===============
-    ALL: IE Fixes
-   =============== */
-
-.ie7 .title {
-    padding-top: 20px;
-}
-
 /* ==========================================================================
    Author's custom styles
    ========================================================================== */
-body{
+body {
+  font: 13px/19px Helvetica, Helvetica Neue, Arial;
   background-color:white;
   color:#616261;
 }
@@ -199,43 +138,46 @@ h4 {
 /* -----------------------------------------------------------------------
   INTRO 
 */
-#intro {
-  margin-top:28px;
-  border-bottom:1px solid #616261;
-  width:100%;
-  margin-bottom:28px;
-}
-#intro .col-left{
-  width: 495px;
-  padding-right:22px;
-  padding-left:0;
-}
-#intro .col-right{
-  width:190px;
-  padding-right:0;
-  padding-left:22px;
-}
-#intro h1 {
-  margin-top:0;
-  margin-bottom:10px;
-}
-#intro h3 {
-    margin-bottom: 15px;
-    margin-top: 5px;
-}
-#intro .summary p{
-  font-size:13px;
-  line-height:19px;  
-  margin-bottom:24px;
-  margin-top:0;
-}
-#intro .home-link {
+.intro .home-link {
   display:block;
   height:164px;
   width:150px;
   background-image:url('../img/hrc-logo.png');
   background-repeat: no-repeat;
 }
+.intro {
+  margin-top:28px;
+  width:100%;
+  margin-bottom:28px;
+}
+#intro {
+  border-bottom:1px solid #616261;
+}
+.intro .col-left{
+  width: 495px;
+  padding-right:22px;
+  padding-left:0;
+}
+.intro .col-right{
+  width:190px;
+  padding-right:0;
+  padding-left:22px;
+}
+.intro h1 {
+  margin-top:0;
+  margin-bottom:10px;
+}
+.intro h3 {
+    margin-bottom: 15px;
+    margin-top: 5px;
+}
+.intro .summary p{
+  font-size:13px;
+  line-height:19px;  
+  margin-bottom:24px;
+  margin-top:0;
+}
+
 /* -----------------------------------------------------------------------
   TOOL 
 */
@@ -282,10 +224,33 @@ h4 {
   line-height:50px;
   font-weight:bold;
 }
+#overview-bottom .rank-panel,
 #overview-bottom .score-panel {
   position:relative;
 }
 #overview-bottom .score-change {
+  bottom: 0;
+  height: 45px;
+  position: absolute;
+  right: 0;
+  text-align: center;  
+}
+#overview-bottom .rank-label {
+  font-size:12px;
+  font-weight:bold;
+  margin-bottom: 3px;
+}
+#overview-bottom .rank {
+  font-weight:bold;
+}
+#overview-bottom .rank .the-rank {
+  font-size:35px;
+  line-height:35px;
+}
+#overview-bottom .rank .rank-of {
+  font-size:12px;
+}
+#overview-bottom .rank-change {
   bottom: 0;
   height: 45px;
   position: absolute;
@@ -312,22 +277,44 @@ h4 {
 .report-all .icon-trend.up {background-image:url('../img/icons/trend-all-up.png');}
 .report-all .icon-trend.same {background-image:url('../img/icons/trend-all-same.png');}
 .report-all .icon-trend.down {background-image:url('../img/icons/trend-all-down.png');}
+.icon-score,.icon-score-pass,.icon-score-fail{
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 54px 54px;
+  height: 54px;
+  width:54px;
+  display:block;
+}
+.report-entity .icon-score {background-image:url('../img/icons/score-entity.png');}
+.report-entity .icon-score-pass {background-image:url('../img/icons/score-entity-pass.png');}
+.report-entity .icon-score-fail {background-image:url('../img/icons/score-entity-fail.png');}
+.report-all .icon-score {background-image:url('../img/icons/score-all.png');}
+.report-type .icon-score {background-image:url('../img/icons/score-type.png');}
+.report-size .icon-score {background-image:url('../img/icons/score-size.png');}
 
 /* -----------------------------------------------------------------------
   ACCORDION 
 */
+.accordion {
+  border-bottom: 1px solid #616161;
+}
 .accordion-top {
     height: 112px;
     padding-top: 23px;
     position: relative;
 }
 .accordion .col-left{
-  width:240px;
-  padding-right:22px;
+  width:240px;  
 }
 .accordion .col-right{
-  width:445px;
-  padding-left:22px;
+  width:411px;
+  margin-left:34px;
+}
+.accordion-bottom .col-left,
+.accordion-bottom .col-right{
+  border-top:1px solid #d2d2d2;
+  padding-top:20px;
+  padding-bottom:32px;
 }
 .accordion-toggle {
   background-repeat: no-repeat;
@@ -356,8 +343,77 @@ h4 {
 /* -----------------------------------------------------------------------
   DETAILS 
 */
-
-
+.title-score-wrap{
+  display:table;
+}
+.title-score-wrap .title{
+  padding-left: 10px;
+}
+.title-score-wrap .title,
+.title-score-wrap .title-score{
+  display:table-cell;
+  vertical-align: middle;
+  font-size:18px;
+  line-height:22px;
+  height: 66px;
+}
+.title-score-wrap .title-score{
+  position:relative;
+}
+.title-score-wrap .title-score .the-score{
+  position:absolute;
+  top:50%;
+  left:0;
+  margin-top:-11px;
+  width:54px;
+  text-align:center;
+  color: #fff;
+  font-weight: bold;
+}
+.criteria .group-elements {
+  border-top:1px solid #d2d2d2;
+  padding-top:20px;
+  padding-bottom:32px;
+}
+.icon-score-pass-small,.icon-score-fail-small{
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 15px 15px;
+  height: 15px;
+  width: 15px;
+  margin-left: 20px;
+  display:block;
+}
+.report-entity .icon-score-pass-small {background-image:url('../img/icons/score-entity-pass-small.png');}
+.report-entity .icon-score-fail-small {background-image:url('../img/icons/score-entity-fail-small.png');}
+.col-1 {
+  font-weight: bold;
+  text-align: right;
+  width: 37px;
+}
+.col-2 {
+    padding-left: 10px;
+    width: 298px;
+}
+.col-3 {
+  width: 38px;
+  text-align: right;
+}
+.col-4, .col-5 {
+  text-align: right;
+  width: 124px;
+}
+.col-1, .col-2, .col-3, .col-4, .col-5 {
+  display: table-cell;
+  vertical-align: middle;
+}
+.group-elements .item {
+    padding-bottom: 5px;
+    padding-top: 5px;
+}
+.score-type{color:#a3b940}
+.score-all{color:#731c1f}
+.score-size{color:#246284}
 /* -----------------------------------------------------------------------
   AVERAGES 
 */
@@ -389,11 +445,57 @@ h4 {
 }
 .averages-list > li:last-child {margin:0}
 
+.legend-list {
+  list-style: none outside none;
+  padding-left:0;
+}
+.line {
+    border-top: 2px;
+    display: inline-block;
+    height: 7px;
+    margin-right: 6px;
+    width: 20px;
+}
+.legend-entity .line {
+  border-color: #24ada2;
+}
+.legend-type .line {
+  border-color: #a3b940;
+  border-top-style:dashed;
+}
+.legend-size .line { 
+  border-color: #246284;
+  border-top-style:dashed; 
+}
+.legend-all .line {
+  border-color: #731c1f;
+  border-top-style:dotted;
+}
+.legend-main .line {
+  border-top-width: 2px;
+  border-top-style:solid !important;
+}
+
 /* -----------------------------------------------------------------------
   PLOTS 
 */
-.overview-plot { width: 679px; height: 210px; }
-.time-plot { width: 415px; height: 160px; }
+.overview-plot { 
+  width: 679px; 
+  height: 210px; clear: both;
+}
+.time-plot { 
+  height: 160px;
+  left: -14px;
+  position: relative;
+  width: 418px;clear: both;
+}
+.xaxis-label {
+  float: right;
+  margin-right: 9px;  
+}
+.plot-wrapper {
+    position: relative;
+}
 .tooltip {
    font-size: 1em;
    opacity: 1;
