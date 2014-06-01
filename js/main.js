@@ -1149,7 +1149,7 @@ template: _.template('\
       writer.addText(this.options.axis_label,'overview_graph_axis_label');
       var item_graph = writer.item('overview_graph');
       for (var i = 0;i<this.ticks.length;i++){
-        writer.addText(this.ticks[this.ticks.length-1-i][1],'overview_graph_ticks',{offy:item_graph.h*0.88/(this.ticks.length-1)*i});        
+        writer.addText(this.ticks[this.ticks.length-1-i][1],'overview_graph_ticks',{offy:item_graph.h*0.89/(this.ticks.length-1)*i});        
       }
         
     },
@@ -2025,7 +2025,7 @@ template: _.template(''),
       writer.addText(this.model.get('title'),item_key+'_title');
       var item_graph = writer.item(item_key);
       for (var i = 0;i<this.ticks.length;i++){
-        writer.addText(this.ticks[this.ticks.length-1-i][1],item_key+'_ticks',{offy:item_graph.h*0.70/(this.ticks.length-1)*i});        
+        writer.addText(this.ticks[this.ticks.length-1-i][1],item_key+'_ticks',{offy:item_graph.h*0.75/(this.ticks.length-1)*i});        
       }
       var all_keys = Object.keys(this.model.get('all'));
       for (var i = 0;i<all_keys.length;i++){
@@ -2121,10 +2121,19 @@ template: _.template(''),
   
   
   views.Footer = Backbone.View.extend({
-    render: function() {},
+    initialize: function() {
+      this.render();
+    },
+    render: function() {
+      this.$el.html(this.template({}));
+    },
     renderPdf: function(writer) {
       writer.addImage('footer','footer_image');
     },
+template: _.template('\
+    <div class="footer-scene">\n\
+    </div>\n\
+    ')              
   });
   
  
@@ -2333,7 +2342,7 @@ template: _.template(''),
         overview_graph        : {y:100,x:63,w:132,h:40},        
         overview_graph_axis_label  : {y:96,x:180},      
         overview_graph_ticks  : {y:103.5,x:188,yalign:'center'},
-        averages_graph        : {y:149,x:107,w:89,h:34},
+        averages_graph        : {y:149,x:107,w:89,h:30},
         averages_graph_title  : {y:142.5,x:110,style:'bold'},     
         averages_graph_axis_label  : {y:146,x:180},      
         averages_graph_ticks  : {y:152.5,x:188,yalign:'center'},             

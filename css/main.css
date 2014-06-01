@@ -475,7 +475,19 @@ h4 {
   border-top-width: 2px;
   border-top-style:solid !important;
 }
-
+/* -----------------------------------------------------------------------
+  FOOTER 
+*/
+#footer{
+  background-image:url('../img/footer-scene.png');
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 685px auto;
+  height: 272px;
+  width:685px;
+  display:block; 
+  margin-top:29px;  
+}
 /* -----------------------------------------------------------------------
   PLOTS 
 */
