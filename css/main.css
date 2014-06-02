@@ -625,20 +625,20 @@ a.fullscreen{
    color: #888;
    background: #fff;
    border: 0px solid #aaa;
-   -moz-box-shadow: 0px 1px 1px #ddd;
-   -webkit-box-shadow: 0px 1px 1px #ddd;
-   box-shadow: 0px 1px 2px #ddd;
+   -moz-box-shadow: 0 2px 5px #A2A2A2;
+   -webkit-box-shadow: 0 2px 5px #A2A2A2;
+   box-shadow: 0 2px 5px #A2A2A2;
 }
-.tooltip div {
+.tooltip .tooltip-inner-wrap {
    position: relative;   
    margin: 3px;
-   max-width:200px;
+   width:200px;
 }
-.tooltip span { 
-  display: block; 
+.tooltip .series { 
+  margin-bottom:10px;
 }
 .tooltip span.series { }
-.tooltip:after {
+/*.tooltip:after {
     border-color: #AAAAAA rgba(0, 0, 0, 0) rgba(0, 0, 0, 0);
     border-style: solid;
     border-width: 5px;
@@ -649,6 +649,17 @@ a.fullscreen{
     margin-left: -5px;
     position: absolute;
     width: 0;
+}*/
+.tooltip:after {
+    border-color: #fff rgba(0, 0, 0, 0) rgba(0, 0, 0, 0);
+    border-style: solid;
+    border-width: 5px;
+    bottom: -10px;
+    content: " ";
+    height: 0;
+    position: absolute;
+    width: 0;
+    margin-left: -5px !important;
 }
 
 

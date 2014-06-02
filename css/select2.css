@@ -25,7 +25,9 @@ Customised: TF
      -moz-box-sizing: border-box; /* firefox */
           box-sizing: border-box; /* css3 */
 }
-
+.select2-container a.select2-choice:hover {
+   /* opacity: 1;    */
+}
 .select2-container .select2-choice {
     display: block;
     height: 28px;
@@ -70,15 +72,15 @@ Customised: TF
 
 #s2id_entity.select2-container.select2-allowclear .select2-choice .select2-arrow:hover,
 #s2id_entity.select2-container.select2-allowclear .select2-choice abbr:hover{
-  background-color:#cbe3e1;
+  background-color:#7CCEC7;
 } 
 #s2id_type.select2-container.select2-allowclear .select2-choice .select2-arrow:hover,
 #s2id_type.select2-container.select2-allowclear .select2-choice abbr:hover{
-  background-color:#dce3b3;
+  background-color:#C8D58C;
 } 
 #s2id_size.select2-container.select2-allowclear .select2-choice .select2-arrow:hover,
 #s2id_size.select2-container.select2-allowclear .select2-choice abbr:hover{
-  background-color:#b9c3d4;
+  background-color:#7CA1B5;
 } 
 
 .select2-container.select2-drop-above .select2-choice {

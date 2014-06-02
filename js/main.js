@@ -1228,10 +1228,12 @@ template: _.template('\
           document.body.style.cursor = 'default';
       }
       if (item) {
-
+        var yoffset = item.dataIndex/this.collection.length;
+        
         this.hoverTip = $(this.toolTipHTML( 
-                item.series.data[item.dataIndex][1], 
-                this.collection.models[item.dataIndex].get('title') ));
+                item.series.data[item.dataIndex], 
+                this.collection.models[item.dataIndex],
+                (yoffset * 100)));
 
         this.$('.overview-plot').parent().append(this.hoverTip);
 
@@ -1239,24 +1241,29 @@ template: _.template('\
         ofsw = this.hoverTip.outerWidth();
 
         this.hoverTip.offset({
-          left: item.pageX - ofsw / 2,
+          left: item.pageX - ofsw * yoffset,
           top: item.pageY - ofsh - 5
         });
       }      
     },
-    toolTipHTML :function( stat, series ) {
+    toolTipHTML :function( stat, series , yoffset) {
 
       var html = '';
 
       html += '<div class="tooltip">';
-      html += '<div>';
+      html += '<div class="tooltip-inner-wrap">';
 
       if ( series )
-         html += '<span class="series">'+series+'</span>';
+         html += '<div class="series"><strong>'+series.get('title')+'</strong></div>';
 
-      html += '<span class="stats">Compliance: '+stat+'%</span>';
+      html += '<div class="stats">Compliance: '+stat[1]+'%</div>';
+      html += '<div class="stats">Rank: '+series.getRank()+'</div>';
+      html += '</div>';
+      //html += '<div class="tooltip-after" style="left:'+yoffset+'%">';
       html += '</div>';
       html += '</div>';
+      html += '<style>.tooltip:after {left:'+yoffset+'%;}</style>';
+
 
       return html;
 
@@ -1969,7 +1976,6 @@ template: _.template(''),
         shadowSize : 0,
       }
     },
-
     render: function() {
       this.$el.html(this.template($.extend(this.model.attributes,{cid:this.cid})));
       return this;
@@ -2002,7 +2008,7 @@ template: _.template(''),
         return $.extend(options,{lines:{show:true,lineWidth:line_width_main}});
       }
       
-    },       
+    },            
     renderGraph: function() {
 
       var options = _.clone(this.plotOptions);
@@ -2040,7 +2046,8 @@ template: _.template(''),
         _.each(this.model.get('size'), function(year) { 
           data.push([year.year,year.percentage]);
         });
-        dataset.push(this.lineOptions('size',{
+        dataset.push(
+        this.lineOptions('size',{
           data  : data
         }));
         options.colors.push(rgbToHex(COLORS.size));
@@ -2052,9 +2059,10 @@ template: _.template(''),
         _.each(this.model.get('entity'), function(year) { 
           data.push([year.year,year.percentage]);
         });
-        dataset.push(this.lineOptions('entity',{
-          data  : data
-        }));
+        dataset.push(
+          this.lineOptions('entity',{
+            data  : data
+          }));
         options.colors.push(rgbToHex(COLORS.entity));
       }
       // axis padding in %
@@ -2062,6 +2070,8 @@ template: _.template(''),
       var all_keys = Object.keys(this.model.get('all'));
       options.xaxis.max =  Math.max.apply(Math, all_keys)+((all_keys.length-1)*this.axis_padding);
       options.xaxis.min =  Math.min.apply(Math, all_keys)-((all_keys.length-1)*this.axis_padding);
+      
+      
       // Now, the chart can be drawn ...
       this.plot = $.plot( this.$('.time-plot'), dataset, options ); 
       
@@ -2233,28 +2243,30 @@ template: _.template('\
         if ($.inArray(filter[0],['all','entity','type','size']) === -1 || filter[1] === 'none' || filter[1] === '') {
           this.navigate(year + '/report/all-entities', {trigger: true});
         } else {
+          console.log('route:report: '+filter[0]+'-'+filter[1]);
           app.Control.set({year:year,report:filter[0],id:filter[1]});
+        
+          // set report specific classes for css
+          $('#report').removeClass (function (index, css) {
+            return (css.match (/\breport-\S+/g) || []).join(' ');
+          });
+          $('#report').addClass('report-'+filter[0]).addClass('report-id-'+filter[1]);
+
+          // create other models if necessary
+          app.Overview      = app.Overview       || new models.Overview();
+          app.Details       = app.Details        || new models.Details();
+
+          // update models >>> trigger view render
+          app.Overview.update();
+          app.Details.update();
+
+          // create views if necessary
+          app.viewsIntro    = app.viewsIntro     || new views.Intro(    { el: $("#intro"),    model: new models.Intro() });
+          app.viewsTools    = app.viewsTools     || new views.Tools(    { el: $("#tools"),    model: app.Control });                
+          app.viewsOverview = app.viewsOverview  || new views.Overview( { el: $("#overview"), model: app.Overview});
+          app.viewsDetails  = app.viewsDetails   || new views.Details(  { el: $("#details"),  model: app.Details});        
+          app.viewsFooter   = app.viewsFooter    || new views.Footer(   { el: $("#footer"),   model: app.Control});
         }
-        // set report specific classes for css
-        $('#report').removeClass (function (index, css) {
-          return (css.match (/\breport-\S+/g) || []).join(' ');
-        });
-        $('#report').addClass('report-'+filter[0]).addClass('report-id-'+filter[1]);
-        
-        // create other models if necessary
-        app.Overview      = app.Overview       || new models.Overview();
-        app.Details       = app.Details        || new models.Details();
-        
-        // update models >>> trigger view render
-        app.Overview.update();
-        app.Details.update();
-        
-        // create views if necessary
-        app.viewsIntro    = app.viewsIntro     || new views.Intro(    { el: $("#intro"),    model: new models.Intro() });
-        app.viewsTools    = app.viewsTools     || new views.Tools(    { el: $("#tools"),    model: app.Control });                
-        app.viewsOverview = app.viewsOverview  || new views.Overview( { el: $("#overview"), model: app.Overview});
-        app.viewsDetails  = app.viewsDetails   || new views.Details(  { el: $("#details"),  model: app.Details});        
-        app.viewsFooter   = app.viewsFooter    || new views.Footer(   { el: $("#footer"),   model: app.Control});
     },
 
   });
