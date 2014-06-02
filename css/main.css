@@ -62,7 +62,15 @@ textarea {
 body {
   font: 13px/19px Helvetica, Helvetica Neue, Arial;
   background-color:white;
-  color:#616261;
+  color:#616161;
+}
+a{
+  text-decoration:none;
+  color:#616161;
+}
+a:hover{
+  text-decoration:none;
+  opacity:0.8;
 }
 .clearfix:before, .clearfix:after, .container:before, .container:after, .row:before, .row:after {
   content: " ";
@@ -74,6 +82,12 @@ body {
 }
 * {
     box-sizing: border-box;
+}
+.pull-left {
+  float: left !important;
+}
+.pull-right {
+  float: right !important;
 }
 .container {
   width:685px;
@@ -148,7 +162,7 @@ h4 {
 .intro {
   margin-top:28px;
   width:100%;
-  margin-bottom:28px;
+  margin-bottom:6px;
 }
 #intro {
   border-bottom:1px solid #616261;
@@ -182,7 +196,101 @@ h4 {
   TOOL 
 */
 #tools {
-  margin-bottom:30px;
+  margin-bottom:35px;
+}
+#tools h4 {
+  font-size: 16px;
+  margin-bottom: 13px;
+  margin-top: 22px;    
+}
+.btn {
+    -webkit-touch-callout: none;
+      -webkit-user-select: none;
+         -moz-user-select: none;
+          -ms-user-select: none;
+              user-select: none;
+    background-color: #616161;
+    color: #fff;    
+    background-image: none;
+    cursor: pointer;
+    display: inline-block;
+    font-weight: bold;
+    line-height: 28px;
+    margin-bottom: 0;
+    padding: 0 5px;
+    text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+    height:28px;
+    margin-right: 4px;
+    border:none;
+    font-size:12px;
+}
+.btn:hover, .btn-default:focus{
+  background-color: #818181;
+  text-decoration: none;
+}
+.btn:active, .btn.active{
+  background-color: #731c1f;
+  color:white;
+}
+.btn.active:hover{
+  background-color: #731C1F;
+}
+.icon-download{
+    background-image: url("../img/icons/download.png");
+    background-position: 0 0;
+    background-repeat: no-repeat;
+    background-size: 28px 28px;
+    display: inline-block;
+    height: 28px;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    top: -3px;
+    vertical-align: middle;
+    width: 28px;
+}
+a#renderPdf{
+  display: block;
+  font-size: 13px;
+  height: 28px;
+  line-height: 28px;
+  position: relative;
+  vertical-align: middle;
+  padding: 0 0 0 5px;
+}
+#report-select {
+    margin-bottom: 6px;
+}
+.icon-fullscreen-close,
+.icon-fullscreen-open{
+    background-position: 0 0;
+    background-repeat: no-repeat;
+    background-size: 28px 28px;
+    display: inline-block;
+    height: 28px;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    top: -3px;
+    vertical-align: middle;
+    width: 28px;
+}
+.icon-fullscreen-close{
+    background-image: url("../img/icons/fullscreen-close.png");
+}
+.icon-fullscreen-open{
+    background-image: url("../img/icons/fullscreen-open.png");
+}
+a.fullscreen{
+  display: block;
+  font-size: 13px;
+  height: 28px;
+  line-height: 28px;
+  position: relative;
+  vertical-align: middle;
+  padding: 0 0 0 5px;
 }
 /* -----------------------------------------------------------------------
   OVERVIEW 

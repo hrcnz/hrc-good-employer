@@ -20,11 +20,11 @@
         all           :{r:115,g:28,b:31}, // red: #731c1f
         all_light     :{r:210,g:164,b:166},//        
         entity        :{r:36,g:173,b:162}, // turquoise: #24ada2
-        entity_light  :{r:203,g:227,b:225},//        
+        entity_light  :{r:203,g:227,b:225},// #cbe3e1       
         type          :{r:163,g:185,b:64}, // green: #a3b940
-        type_light    :{r:220,g:227,b:179},        
+        type_light    :{r:220,g:227,b:179},//#dce3b3 
         size          :{r:36,g:98,b:132}, // blue: 246284
-        size_light    :{r:185,g:195,b:212},
+        size_light    :{r:185,g:195,b:212}, //b9c3d4
       };
   
   /*
@@ -123,13 +123,34 @@
   models.Type = Backbone.Model.extend({});  
   models.Types = Backbone.Collection.extend({
     model: models.Type,
+    initialize: function() {
+      this.sort_key = 'title';
+      this.sort_dir = 'asc';
+    },
     byRecords : function (records) {
       var filtered = this.filter(function(type) { 
         return (records.hasType(type.get('id')));
         //return (Math.ceil(staffno) >= size.get('min') && Math.ceil(staffno) <= size.get('max') );
       }); 
       return new models.Types(filtered);      
-    }
+    },
+    // allow sorting by score and alphabetically       
+    comparator: function(a, b) {
+      var flip = this.sort_dir === 'asc' ? 1 : -1;
+        a = a.get(this.sort_key).toLowerCase();
+        b = b.get(this.sort_key).toLowerCase();
+        return flip *
+               ((a > b) ?  1
+              : (a < b) ? -1
+              :            0);
+    },
+    // get sorted collection 
+    sortBy: function(key,direction){
+      direction = typeof direction !== 'undefined' ? direction : 'asc';
+      this.sort_key = key;
+      this.sort_dir = direction;
+      return this.sort();
+    },            
   });
   
   // SIZES CATEGORISATION
@@ -485,18 +506,38 @@
       var records = app.Records.byYear(parseInt(this.model.get('year')));
       var variables = {
         entities        : records.models,
-        types           : app.Types.byRecords(records).models,
+        types           : app.Types.byRecords(records).sort().models,
         sizes           : app.Sizes.byRecords(records).models,
         years           : (this.model.get('report') === "entity") 
 ? app.Years.active().byYears(Object.keys(app.Records.byEntity(parseInt(this.model.get('id'))).getResults())).models
 : app.Years.active().models,        
-        allActive       : (this.model.get('report') === "all" && this.model.get('id') === 'all') ? 'active' : '',
+        allActive       : (this.model.get('report') === "all" ) ? 'active' : '',
         entityActiveID  : (this.model.get('report') === "entity") ? this.model.get('id') : '',        
         typeActiveID    : (this.model.get('report') === "type") ? this.model.get('id') : '',
         sizeActiveMin   : (this.model.get('report') === "size") ? this.model.get('id') : -1,
         yearActive      : parseInt(this.model.get('year'))
       };
-      this.$el.html(this.template(variables));
+      this.$el.html(this.template($.extend(variables,{select_width:178})));
+     
+      
+      this.$('select#entity').select2({
+          placeholder: "Entity",
+          allowClear:true
+        });
+      this.$('select#type').select2({
+          placeholder: "Type",
+          allowClear:true,
+          minimumResultsForSearch: 99  // disable search box
+        });
+      this.$('select#size').select2({
+          placeholder: "Size",
+          allowClear:true,
+          minimumResultsForSearch: 99
+        });
+      this.$('select#year').select2({
+          minimumResultsForSearch: 99
+        });
+      
       this.initFullscreen();
       return this;      
     },            
@@ -533,37 +574,47 @@
         renderPdf();
     },
     template: _.template('\
-<button id="all" class="<%= allActive %>">All entities</button>\
-<select id="entity">\
-  <option value="none">Entity</option>\
-  <% _.forEach(entities, function (entity) {%>\
+<div class="row">\n\
+<h4 class="medium pull-left">Select Report</h4>\n\
+<a href="#" class="fullscreen hidden-fullscreen hidden-standalone pull-right" data-toggle="fullscreen">Enter fullscreen <span class="icon-fullscreen-open"></span></a>\
+<a href="#" class="fullscreen visible-fullscreen hidden-standalone pull-right" data-toggle="fullscreen-close">Exit fullscreen <span class="icon-fullscreen-close"></span></a>\n\
+</div>\n\
+<div class="row" id="report-select"><button id="all" class="btn <%= allActive %>">All entities</button>\
+<select id="entity" class="select2" style="width:<%=select_width%>px;">\
+  <option></option>\
+  <% var group_label = "A"; %>\n\
+  <optgroup label="<%=group_label%>">\n\
+  <%_.forEach(entities, function (entity) {%>\n\
+    <% if (entity.get("title").charAt(0).toUpperCase() !== group_label) { %>\n\
+    <% group_label = entity.get("title").charAt(0).toUpperCase();  %>\n\
+    </optgroup><optgroup label="<%=group_label%>">\n\
+    <% }  %>\n\
     <option value="<%= entity.get("entityid") %>" <% if (entity.get("entityid") === parseInt(entityActiveID)) { print ("selected") } %> >\
     <%= entity.get("title") %></option>\
   <%})%>\
+  </optgroup>\n\
 </select>\
-<select id="type">\
-  <option value="none">Type</option>\
+<select id="type" class="select2" style="width:<%=select_width%>px;">\
+  <option></option>\
   <% _.forEach(types, function (type) {%>\
     <option value="<%= type.get("id") %>" <% if (type.get("id") === typeActiveID) { print ("selected") } %> >\
     <%= type.get("title") %></option>\
   <%})%>\
 </select>\
-<select id="size">\
-  <option value="none">Size</option>\
+<select id="size" class="select2" style="width:<%=select_width%>px;">\
+  <option></option>\
   <% _.forEach(sizes, function (size) {%>\
     <option value="<%= size.get("min") %>" <% if (size.get("min") <= sizeActiveMin && size.get("max") >= sizeActiveMin) { print ("selected") } %> >\
     <%= size.get("title") %></option>\
   <%})%>\
 </select>\
-<select id="year">\
+<select id="year" class="select2">\
   <% _.forEach(years, function (year) {%>\
     <option value="<%= year.get("year") %>" <% if (parseInt(year.get("year")) === yearActive) { print ("selected") } %>>\
     <%= year.get("year") %></option>\
   <%})%>\
-</select>\
-<a href="#" id="renderPdf">Download report as pdf</a>\
-<a href="#" class="hidden-fullscreen hidden-standalone" data-toggle="fullscreen">Enter fullscreen</a>\
-<a href="#" class="visible-fullscreen hidden-standalone" data-toggle="fullscreen-close">Exit fullscreen</a>\
+</select></div>\
+<div class="row"><a href="#" id="renderPdf" class="pull-right">Download report as pdf <span class="icon-download"></span></a></div>\
     '),
     /* FULLSCREEN   ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
     initFullscreen : function () {
