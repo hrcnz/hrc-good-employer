@@ -2060,25 +2060,11 @@ template: _.template(''),
         options.colors.push(rgbToHex(COLORS.size));
       }
       data = [];
-      var dataPass = [];
-      var dataFail = [];
       //if entity
       if (!$.isEmptyObject(this.model.get('entity'))){
         var that = this;
         _.each(this.model.get('entity'), function(year) { 
-          data.push([year.year,year.percentage]);
-          if (that.options.marker){
-            if (year.percentage === 100) {
-              var img = new Image();
-              img.src = 'img/icons/score-entity-pass-mark.png';        
-              dataPass.push([img,year.year,year.percentage]);
-            }
-            else if (year.percentage === 0) {
-              var img = new Image();
-              img.src = 'img/icons/score-entity-fail-mark.png';        
-              dataPass.push([img,year.year,year.percentage]);          
-            }
-          }
+          data.push([year.year,year.percentage]);          
         });
         dataset.push(
           this.lineOptions('entity',{
@@ -2086,12 +2072,6 @@ template: _.template(''),
           }));
         options.colors.push(rgbToHex(COLORS.entity));
           
-        if (this.options.marker){          
-          dataset.push({data:dataPass,images : {show: true}});
-          dataset.push({data:dataFail,images : {show: true}});
-          options.colors.push({});
-          options.colors.push({}); 
-        }
 
       }
         // Now, the chart can be drawn ...
