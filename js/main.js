@@ -1105,6 +1105,7 @@ template: _.template('\
   views.OverviewGraph = Backbone.View.extend({
     initialize : function (options) {
       this.options = options || {};
+      this.currentIndex = -99;
       this.ticks = [[0,'0%'],[25,''],[50,'50%'],[75,''],[100,'100%']];
     },
     events : {
@@ -1113,7 +1114,6 @@ template: _.template('\
     },            
     attributes: { class: 'overview-graph row' },
     plotOptions: {
-      canvas: false,
       yaxis: {
         tickColor:rgbToHex(COLORS.dark),
         color:rgbToHex(COLORS.dark),
@@ -1136,7 +1136,7 @@ template: _.template('\
       grid: { 
         hoverable: true, 
         clickable: true, 
-        autoHighlight: true, 
+        autoHighlight: true,
         backgroundColor: '#ffffff',
         show: true,
         aboveData: false,
@@ -1147,11 +1147,12 @@ template: _.template('\
         borderColor: rgbToHex(COLORS.dark),
         color: rgbToHex(COLORS.dark),
         minBorderMargin: 0,
+        axisMargin:0        
       },
       series: {
         shadowSize : 0,
-        bars: {          
-          show: true, 
+        bars: { 
+          show:true,
           fill: 1, 
           barWidth: 0.9, 
           align: 'center',
@@ -1167,28 +1168,59 @@ template: _.template('\
             
     renderGraph: function() {
 
-      var options = _.clone(this.plotOptions);
-      options.series.highlightColor = rgbToHex(COLORS.all);
+      var options = _.clone(this.plotOptions);      
       options.yaxis.ticks = this.ticks;
+      
       var data = [];
+      var dataZero = [];
+      var dataZeroActive = [];
       var dataActive = [];
+      options.colors = [];
+      options.colors.push(app.Control.color(true,true));
+      options.colors.push(app.Control.color(true,true));
+      options.colors.push(app.Control.color(false,true));
+      options.colors.push(app.Control.color(false,true));
+      options.xaxis.min = -1;
+      options.xaxis.max = this.collection.length + 1;
+      
       for ( var i=0;i<this.collection.length;i++ ) {
-        var model = this.collection.models[i];
+        var model = this.collection.models[i];        
+        if (model.getScore(true) === 0 ){    
+          dataZero.push([i, model.getScore(true) ]);          
+        } 
         data.push([i, model.getScore(true) ]);
+              
         if (this.options.collectionActive !== null) {
           var modelActive = this.options.collectionActive.findWhere({ entityid: model.get('entityid') });
-          if (typeof modelActive !== "undefined") {
-            dataActive.push([i, modelActive.getScore(true) ]);
+          if (typeof modelActive !== "undefined") {                        
+            if (model.getScore(true) === 0 ){     
+              dataZeroActive.push([i, model.getScore(true) ]);              
+            }
+            dataActive.push([i, modelActive.getScore(true) ]);            
           } else {
             dataActive.push([i, null]);
           }
         }
       }
-            
-      options.xaxis.min = -1;
-      options.xaxis.max = this.collection.length + 1;
 
-      var dataset = [{ data : data, bars : {fillColor:app.Control.color(true,true)} },{ data : dataActive, bars : {fillColor:app.Control.color(false,true)}}];
+      var dataset = [
+        { data : data, 
+          bars : {fillColor:app.Control.color(true,true)},
+          highlightColor : rgbToHex(COLORS.all)
+        },
+        { data : dataZero, 
+          points: {show:true},
+          highlightColor : rgbToHex(COLORS.all)
+        },
+        { data : dataActive, 
+          bars : {fillColor:app.Control.color(false,true)},
+          highlightColor : rgbToHex(COLORS.all)          
+        },        
+        { data : dataZeroActive, 
+          points: {show:true},
+          highlightColor : rgbToHex(COLORS.all)
+        },        
+      ];
 
       // Now, the chart can be drawn ...
       this.plot = $.plot( this.$('.overview-plot'), dataset, options );
@@ -1217,40 +1249,47 @@ template: _.template('\
       }
     },
     plothover : function(event, pos, item){
-      console.log('plothover');
       var ofsh, ofsw;
  
       if ( this.hoverTip )
          this.hoverTip.remove();
+       
       if(item) {
-          document.body.style.cursor = 'pointer';
-      } else {
-          document.body.style.cursor = 'default';
-      }
-      if (item) {
-        var yoffset = item.dataIndex/this.collection.length;
         
-        this.hoverTip = $(this.toolTipHTML( 
-                item.series.data[item.dataIndex], 
-                this.collection.models[item.dataIndex],
+        document.body.style.cursor = 'pointer';
+      
+        var yoffset = item.dataIndex/this.collection.length;
+        var model = this.collection.models[item.dataIndex]; 
+        this.hoverTip = $(this.toolTipHTML(
+                item.series.data[item.dataIndex],
+                model,
                 (yoffset * 100)));
 
         this.$('.overview-plot').parent().append(this.hoverTip);
 
         ofsh = this.hoverTip.outerHeight();
         ofsw = this.hoverTip.outerWidth();
-
-        this.hoverTip.offset({
-          left: item.pageX - ofsw * yoffset,
-          top: item.pageY - ofsh - 5
-        });
-      }      
+        if (this.collection.models[item.dataIndex].getScore() === 0){
+          this.hoverTip.offset({
+            left: item.pageX - ofsw * yoffset,
+            top: item.pageY - ofsh - 15
+          });
+        } else {
+          this.hoverTip.offset({
+            left: item.pageX - ofsw * yoffset,
+            top: item.pageY - ofsh - 5
+          });
+        }        
+      } else {
+          document.body.style.cursor = 'default';
+      }
+      
     },
     toolTipHTML :function( stat, series , yoffset) {
-
+      
       var html = '';
 
-      html += '<div class="tooltip">';
+      html += '<div class="tooltip tooltip-overview">';
       html += '<div class="tooltip-inner-wrap">';
 
       if ( series )
@@ -1259,7 +1298,6 @@ template: _.template('\
       html += '<div class="stats">Compliance: '+stat[1]+'%</div>';
       html += '<div class="stats">Rank: '+series.getRank()+'</div>';
       html += '</div>';
-      //html += '<div class="tooltip-after" style="left:'+yoffset+'%">';
       html += '</div>';
       html += '</div>';
       html += '<style>.tooltip:after {left:'+yoffset+'%;}</style>';
@@ -1267,7 +1305,7 @@ template: _.template('\
 
       return html;
 
-   },
+   },            
     template: _.template('\
 <div class="plot-wrapper">\n\
 <div class="xaxis-label"><%= axis_label %></div>\n\
@@ -1927,9 +1965,10 @@ template: _.template(''),
       this.axis_padding = 0.05;
     },
     attributes: { class: 'time-graph'},
-
+    events : {      
+      "plothover .time-plot" : "plothover",
+    }, 
     plotOptions: {
-      canvas: false,
       yaxis: {
         tickColor:rgbToHex(COLORS.dark),
         color:rgbToHex(COLORS.dark),
@@ -1961,7 +2000,7 @@ template: _.template(''),
       grid: { 
         hoverable: true, 
         clickable: true, 
-        autoHighlight: true, 
+        autoHighlight: true,
         backgroundColor: '#ffffff',
         show: true,
         aboveData: false,
@@ -1979,7 +2018,7 @@ template: _.template(''),
       }
     },
     render: function() {
-      this.$el.html(this.template($.extend(this.model.attributes,{cid:this.cid})));
+      this.$el.html(this.template($.extend(this.model.attributes,{cid:this.cid})));      
       return this;
     },
     lineOptions:function(report,options){
@@ -2007,7 +2046,7 @@ template: _.template(''),
         }
       }
       else if (report === 'entity') { 
-        return $.extend(options,{lines:{show:true,lineWidth:line_width_main},points : {show: true,fill: true,fillColor:rgbToHex(COLORS.entity)}});
+        return $.extend(options,{lines:{show:true,lineWidth:line_width_main},points : {show: true}});
       }
       
     },      
@@ -2062,7 +2101,6 @@ template: _.template(''),
       data = [];
       //if entity
       if (!$.isEmptyObject(this.model.get('entity'))){
-        var that = this;
         _.each(this.model.get('entity'), function(year) { 
           data.push([year.year,year.percentage]);          
         });
@@ -2071,7 +2109,6 @@ template: _.template(''),
             data  : data
           }));
         options.colors.push(rgbToHex(COLORS.entity));
-          
 
       }
         // Now, the chart can be drawn ...
@@ -2081,6 +2118,41 @@ template: _.template(''),
         $('.plot-wrapper-'+this.cid+' .legend').html(this.template_legend($.extend(this.model.attributes,{report:app.Control.get('report')})));
       }      
     },
+    plothover : function(event, pos, item){
+      var ofsh, ofsw;
+        if ( this.hoverTip )
+          this.hoverTip.remove();
+        if (item) {
+
+          this.hoverTip = $(this.toolTipHTML(item.datapoint));
+
+          this.$('.time-plot').parent().append(this.hoverTip);
+          
+          ofsh = this.hoverTip.outerHeight();
+          ofsw = this.hoverTip.outerWidth();
+
+          this.hoverTip.offset({
+            left: item.pageX - ofsw / 2,
+            top: item.pageY - ofsh - 15
+          });          
+        
+				} else {
+					$(".tooltip-time").hide();
+				}
+      
+    },                
+    toolTipHTML :function(stat) {
+
+      var html = '';
+      html += '<div class="tooltip tooltip-time">';      
+      html += '<div class="tooltip-inner-wrap">';
+      html += '<div class="stats">Year: '+stat[0]+'</div>';
+      html += '<div class="stats">Compliance: '+stat[1]+'%</div>';      
+      html += '</div>';
+      html += '</div>';
+      return html;
+
+    },            
     renderPdf: function(writer,item_key,attr){
       writer.addPlot(this.plot.getCanvas(),item_key,attr);
       
@@ -2258,19 +2330,16 @@ template: _.template('\
           app.Overview      = app.Overview       || new models.Overview();
           app.Details       = app.Details        || new models.Details();
           
-          $.plot.image.load(['img/icons/score-entity-fail-mark.png','img/icons/score-entity-pass-mark.png'], function(){
-          
-            // update models >>> trigger view render
-            app.Overview.update();
-            app.Details.update();
+          // update models >>> trigger view render
+          app.Overview.update();
+          app.Details.update();
 
-            // create views if necessary
-            app.viewsIntro    = app.viewsIntro     || new views.Intro(    { el: $("#intro"),    model: new models.Intro() });
-            app.viewsTools    = app.viewsTools     || new views.Tools(    { el: $("#tools"),    model: app.Control });                
-            app.viewsOverview = app.viewsOverview  || new views.Overview( { el: $("#overview"), model: app.Overview});
-            app.viewsDetails  = app.viewsDetails   || new views.Details(  { el: $("#details"),  model: app.Details});        
-            app.viewsFooter   = app.viewsFooter    || new views.Footer(   { el: $("#footer"),   model: app.Control});
-          });
+          // create views if necessary
+          app.viewsIntro    = app.viewsIntro     || new views.Intro(    { el: $("#intro"),    model: new models.Intro() });
+          app.viewsTools    = app.viewsTools     || new views.Tools(    { el: $("#tools"),    model: app.Control });                
+          app.viewsOverview = app.viewsOverview  || new views.Overview( { el: $("#overview"), model: app.Overview});
+          app.viewsDetails  = app.viewsDetails   || new views.Details(  { el: $("#details"),  model: app.Details});        
+          app.viewsFooter   = app.viewsFooter    || new views.Footer(   { el: $("#footer"),   model: app.Control});
         }
     },
 
