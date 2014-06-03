@@ -629,7 +629,7 @@ a.fullscreen{
    -webkit-box-shadow: 0 2px 5px #A2A2A2;
    box-shadow: 0 2px 5px #A2A2A2;
 }
-.tooltip .tooltip-inner-wrap {
+.tooltip-overview .tooltip-inner-wrap {
    position: relative;
    margin: 3px;
    width:200px;
