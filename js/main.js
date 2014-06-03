@@ -960,8 +960,8 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       this.$('.averages-panel').append( this.subviews.averagesView.render().el );      
       
       // subview averages time graph
-      this.subviews.averagesGraphView = new views.AveragesTimeGraph({model:this.model.get('modelAveragesTime')});
-      this.$('#overview-time-graph').append( this.subviews.averagesGraphView.render().el );
+      this.subviews.averagesGraphView = new views.AveragesTimeGraph({model:this.model.get('modelAveragesTime'),marker:false});
+      this.$('#overview-time-graph').append( this.subviews.averagesGraphView.render().el );      
       this.subviews.averagesGraphView.renderGraph();            
       
       return this;
@@ -1666,7 +1666,7 @@ template: _.template(''),
       
       this.$el.html(this.template(this.model.attributes));
       var that = this;
-      
+      var is_marker = true;
       if (this.model.get('criteria') === 'group' ) {
         var i = 0;
         _.each(this.model.attributes.all_group_elements,function(all){          
@@ -1685,13 +1685,15 @@ template: _.template(''),
           }
           i++;
         });
+        // no markers for group view
+        is_marker = false;
       }
       // subview averages 
       this.subviews.averagesView = new views.Averages({model:this.model.get('modelAverages')});
       this.$('.averages-panel').append( this.subviews.averagesView.render().el );                 
       
       // subview averages time graph
-      this.subviews.averagesGraphView = new views.AveragesTimeGraph({model:this.model.get('modelAveragesTime')});            
+      this.subviews.averagesGraphView = new views.AveragesTimeGraph({model:this.model.get('modelAveragesTime'),marker:is_marker});            
       this.$('.criteria-time-graph').append( this.subviews.averagesGraphView.render().el );                  
       
       return this;
@@ -1995,20 +1997,20 @@ template: _.template(''),
           return $.extend(options,{lines:{show:true,lineWidth:line_width_main}});
         } else {
           return $.extend(options,{dashes:{show:true,lineWidth:line_width,dashLength:5}});
-        }
+       }
       }
       else if (report === 'size') { 
-        if(app.Control.get('report') === 'size') {
+       if(app.Control.get('report') === 'size') {
           return $.extend(options,{lines:{show:true,lineWidth:line_width_main}});
         } else {
           return $.extend(options,{dashes:{show:true,lineWidth:line_width,dashLength:8}});
         }
       }
       else if (report === 'entity') { 
-        return $.extend(options,{lines:{show:true,lineWidth:line_width_main}});
+        return $.extend(options,{lines:{show:true,lineWidth:line_width_main},points : {show: true,fill: true,fillColor:rgbToHex(COLORS.entity)}});
       }
       
-    },            
+    },      
     renderGraph: function() {
 
       var options = _.clone(this.plotOptions);
@@ -2016,7 +2018,13 @@ template: _.template(''),
       
       var data = [];
       var dataset = [];
-      options.colors = [];      
+      options.colors = [];    
+      
+      // axis padding in %      
+      var all_keys = Object.keys(this.model.get('all'));
+      options.xaxis.max =  Math.max.apply(Math, all_keys)+((all_keys.length-1)*this.axis_padding);
+      options.xaxis.min =  Math.min.apply(Math, all_keys)-((all_keys.length-1)*this.axis_padding);
+      
       //all entities
       _.each(this.model.get('all'), function(year) { 
         data.push([year.year,year.percentage]);
@@ -2025,10 +2033,9 @@ template: _.template(''),
         this.lineOptions('all',{
           data  : data
       }));
-      options.colors.push(rgbToHex(COLORS.all));
+      options.colors.push(rgbToHex(COLORS.all));            
       
       data = [];
-
       //if type
       if (!$.isEmptyObject(this.model.get('type'))){
         _.each(this.model.get('type'), function(year) { 
@@ -2051,28 +2058,43 @@ template: _.template(''),
           data  : data
         }));
         options.colors.push(rgbToHex(COLORS.size));
-
       }
       data = [];
+      var dataPass = [];
+      var dataFail = [];
       //if entity
       if (!$.isEmptyObject(this.model.get('entity'))){
+        var that = this;
         _.each(this.model.get('entity'), function(year) { 
           data.push([year.year,year.percentage]);
+          if (that.options.marker){
+            if (year.percentage === 100) {
+              var img = new Image();
+              img.src = 'img/icons/score-entity-pass-mark.png';        
+              dataPass.push([img,year.year,year.percentage]);
+            }
+            else if (year.percentage === 0) {
+              var img = new Image();
+              img.src = 'img/icons/score-entity-fail-mark.png';        
+              dataPass.push([img,year.year,year.percentage]);          
+            }
+          }
         });
         dataset.push(
           this.lineOptions('entity',{
             data  : data
           }));
         options.colors.push(rgbToHex(COLORS.entity));
+          
+        if (this.options.marker){          
+          dataset.push({data:dataPass,images : {show: true}});
+          dataset.push({data:dataFail,images : {show: true}});
+          options.colors.push({});
+          options.colors.push({}); 
+        }
+
       }
-      // axis padding in %
-      
-      var all_keys = Object.keys(this.model.get('all'));
-      options.xaxis.max =  Math.max.apply(Math, all_keys)+((all_keys.length-1)*this.axis_padding);
-      options.xaxis.min =  Math.min.apply(Math, all_keys)-((all_keys.length-1)*this.axis_padding);
-      
-      
-      // Now, the chart can be drawn ...
+        // Now, the chart can be drawn ...
       this.plot = $.plot( this.$('.time-plot'), dataset, options ); 
       
       if (this.model.get('legend')) {
@@ -2255,17 +2277,20 @@ template: _.template('\
           // create other models if necessary
           app.Overview      = app.Overview       || new models.Overview();
           app.Details       = app.Details        || new models.Details();
+          
+          $.plot.image.load(['img/icons/score-entity-fail-mark.png','img/icons/score-entity-pass-mark.png'], function(){
+          
+            // update models >>> trigger view render
+            app.Overview.update();
+            app.Details.update();
 
-          // update models >>> trigger view render
-          app.Overview.update();
-          app.Details.update();
-
-          // create views if necessary
-          app.viewsIntro    = app.viewsIntro     || new views.Intro(    { el: $("#intro"),    model: new models.Intro() });
-          app.viewsTools    = app.viewsTools     || new views.Tools(    { el: $("#tools"),    model: app.Control });                
-          app.viewsOverview = app.viewsOverview  || new views.Overview( { el: $("#overview"), model: app.Overview});
-          app.viewsDetails  = app.viewsDetails   || new views.Details(  { el: $("#details"),  model: app.Details});        
-          app.viewsFooter   = app.viewsFooter    || new views.Footer(   { el: $("#footer"),   model: app.Control});
+            // create views if necessary
+            app.viewsIntro    = app.viewsIntro     || new views.Intro(    { el: $("#intro"),    model: new models.Intro() });
+            app.viewsTools    = app.viewsTools     || new views.Tools(    { el: $("#tools"),    model: app.Control });                
+            app.viewsOverview = app.viewsOverview  || new views.Overview( { el: $("#overview"), model: app.Overview});
+            app.viewsDetails  = app.viewsDetails   || new views.Details(  { el: $("#details"),  model: app.Details});        
+            app.viewsFooter   = app.viewsFooter    || new views.Footer(   { el: $("#footer"),   model: app.Control});
+          });
         }
     },
 
