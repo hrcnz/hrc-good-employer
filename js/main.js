@@ -231,7 +231,7 @@
       this.set('typeid',this.get('typeid').trim());
       //remove any hidden characters that may come from the original data, best replace other fields to
       this.set('summaryoverview',this.get('summaryoverview').replace(/[^\u0000-\u007E]/g, ' ').replace('  ',' '));
-      if (this.get('size')==='')this.set('size',0);
+      if (this.get('staffno')==='')this.set('staffno',0);
       if (this.get('type')==='')this.set('type','NS');      
     },
     // check if the record is active, always returns active
@@ -311,7 +311,7 @@
       }
     },  
     getStaffNo : function(){     
-      return this.get('staffno');
+      return this.get('staffno');      
     },
     getTypeTitle : function(){
       return app.Types.findWhere({id : this.get('typeid')}).get('title');      
@@ -340,6 +340,13 @@
       if (this.sort_key === 'score'){
         a = a.getScore();
         b = b.getScore();
+        return flip *
+               ((a > b) ?  1
+              : (a < b) ? -1
+              :            0);
+      } else  if (this.sort_key === 'year'){
+        a = a.get(this.sort_key);
+        b = b.get(this.sort_key);
         return flip *
                ((a > b) ?  1
               : (a < b) ? -1
@@ -453,7 +460,7 @@
         no_criteria = app.Criteria.length;
       }
       // for all records, update scores and count, also calculates percentage each step << this could be done more efficiently
-      this.each(function(record){
+      this.sortBy('year').each(function(record){
         //only active records
         if (record.isActive()){
           var year = record.get('year');
@@ -677,9 +684,9 @@
       this.maxYear = app.Years.getLast();
       this.title = 'Crown Entities and the Good Employer';
       this.subtitle = 'Annual Report Review '+this.minYear+' to '+this.maxYear;      
-      this.summary = 'The Human Rights Comission reviews and analyses the reporting of good employer obligations \
+      this.summary = 'The Human Rights Commission reviews and analyses the reporting of good employer obligations \
 by Crown entities and publishes its findings in an annual report "Crown entities and the Good Employer". \
-Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown entities and monitor thier progress.'
+Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown entities and monitor their progress.'
     }
   });  
   views.Intro = Backbone.View.extend({
@@ -808,8 +815,10 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
             subtitle : entity.get('explanation'),          
             type_label : 'Type',
             type : entity.getTypeTitle(),
+            type_id : entity.get('typeid'),
             size_label : 'Size',
             size : entity.getStaffCatTitle(),            
+            size_id :  entity.getStaffNo(),
             // bottom
             score : entity.getScore(true),
             score_change : scoreChange,
@@ -876,6 +885,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
           rank_label : 'Number of entities in category',
           rank : recordsCat.byYear(this.currentYear).length,
           rank_of : ' of ' + this.currentCount + ' entities total',
+          rank_change : '',
           summary : this.currentYearData.get('summaryoverview'),
         });
         
@@ -919,6 +929,18 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
     },  
     events : {
       "click .accordion-toggle" : "accordionToggle",      
+      "click .load-report" : "loadReport",
+    },
+    loadTitle : function (event) {
+      event.preventDefault();
+        app.App.navigate(
+          app.Control.get('year')
+            + '/report/' 
+            + $(event.currentTarget).data('report'), 
+            + '-', 
+            + $(event.currentTarget).data('reportid'), 
+          {trigger: true});
+            
     },
     accordionToggle: function (event) {
       event.preventDefault();
@@ -979,10 +1001,16 @@ template: _.template('\
 <div id="overview-cat" class="row">\n\
 <table><tbody>\n\
 <% if (type !== "") {%>\n\
-  <tr><td class="label"><%= type_label %> </td><td><%= type %></td></tr>\n\
+  <tr>\n\
+    <td class="label"><%= type_label %> </td>\n\
+    <td><a class="load-report" data-report="type" data-reportid="<%= type_id %>" href="#<%= year %>/report/type-<%= type_id %>" title="Load Report: <%= type %>"><%= type %></a></td>\n\
+  </tr>\n\
 <% } %>\n\
 <% if (size !== "") {%>\n\
-  <tr><td class="label"><%= size_label %> </td><td><%= size %></td></tr>\n\
+  <tr>\n\
+    <td class="label"><%= size_label %> </td>\n\
+    <td><a class="load-report" data-report="size" data-reportid="<%= size_id %>" href="#<%= year %>/report/size-<%= size_id %>" title="Load Report: <%= size %>"><%= size %></a></td>\n\
+  </tr>\n\
 <% } %>\n\
 </tbody></table>\n\
 </div><!-- #overview-cat -->\n\
@@ -990,15 +1018,17 @@ template: _.template('\
 <div id="overview-bottom">\n\
   <div class="accordion open">\n\
   <div class="accordion-top row">\n\
-    <a href="#" class="accordion-open accordion-toggle">More</a>\n\
-    <a href="#" class="accordion-close accordion-toggle">Less</a>\n\
+    <a href="#" class="accordion-open accordion-toggle icon-accordion-toggle">More</a>\n\
+    <a href="#" class="accordion-close accordion-toggle icon-accordion-toggle">Less</a>\n\
     <div class="col-left">\n\
       <div class="score-panel">\n\
         <div class="score-label"><%= score_label %></div>\n\
         <div class="score active"><%= score %>%</div>\n\
-        <div class="score-change active"><div class="icon-trend <%= score_change_class %>"></div>\n\
+        <% if (score_change !== "") {%>\n\
+          <div class="score-change active"><div class="icon-trend <%= score_change_class %>"></div>\n\
           <% if (score_change > 0) {%>+<%}%><%= score_change %>\n\
-        </div>\n\
+          </div>\n\
+        <%}%>\n\
       </div>\n\
     </div>\n\
     <div class="col-right">\n\
@@ -1010,10 +1040,12 @@ template: _.template('\
       <div class="rank-panel">\n\
         <div class="rank-label"><%= rank_label %></div>\n\
         <div class="rank active"><span class="the-rank"><%= rank %></span><span class="rank-of"><%= rank_of %></span></div>\n\
-        <div class="rank-change active "><div class="icon-trend <%= rank_change_class %>"></div>\n\
-          <% if (rank_change > 0) {%>+<%}%><%= rank_change %>\n\
+        <% if (rank_change !== "") {%>\n\
+          <div class="rank-change active "><div class="icon-trend <%= rank_change_class %>"></div>\n\
+            <% if (rank_change > 0) {%>+<%}%><%= rank_change %>\n\
+          </div>\n\
+        <%}%>\n\
         </div>\n\
-      </div>\n\
       <div class="summary-panel">\n\
         <p><%= summary %></p>\n\
       </div>\n\
@@ -1154,9 +1186,9 @@ template: _.template('\
         bars: { 
           show:true,
           fill: 1, 
-          barWidth: 0.9, 
+          barWidth: 1, 
           align: 'center',
-          lineWidth: 0,          
+          lineWidth: 1,       
         },
       },
     },
@@ -1176,12 +1208,12 @@ template: _.template('\
       var dataZeroActive = [];
       var dataActive = [];
       options.colors = [];
+      options.colors.push('#ffffff');
       options.colors.push(app.Control.color(true,true));
-      options.colors.push(app.Control.color(true,true));
+      options.colors.push('#ffffff');
       options.colors.push(app.Control.color(false,true));
-      options.colors.push(app.Control.color(false,true));
-      options.xaxis.min = -1;
-      options.xaxis.max = this.collection.length + 1;
+      options.xaxis.min = -1.5;
+      options.xaxis.max = this.collection.length + 1.5;
       
       for ( var i=0;i<this.collection.length;i++ ) {
         var model = this.collection.models[i];        
@@ -1210,6 +1242,7 @@ template: _.template('\
         },
         { data : dataZero, 
           points: {show:true},
+          bars: {show:false},
           highlightColor : rgbToHex(COLORS.all)
         },
         { data : dataActive, 
@@ -1218,6 +1251,7 @@ template: _.template('\
         },        
         { data : dataZeroActive, 
           points: {show:true},
+          bars: {show:false},
           highlightColor : rgbToHex(COLORS.all)
         },        
       ];
@@ -1252,8 +1286,8 @@ template: _.template('\
       var ofsh, ofsw;
  
       if ( this.hoverTip )
-         this.hoverTip.remove();
-       
+         this.hoverTip.remove();      
+      
       if(item) {
         
         document.body.style.cursor = 'pointer';
@@ -1742,7 +1776,7 @@ template: _.template(''),
     renderPdf : function (writer, attr){
       console.log('Criteria.renderPdf');
       writer.addLine('half_line',$.extend(attr,{color:COLORS.dark}));
-      writer.addCriteriaTitle(this.model.get('title'),this.model.get('score'),this.model.get('report'),attr);      
+      writer.addCriteriaTitle(this.model.get('title'),this.model.get('score'),this.model.get('report'),this.model.get('criteria'),attr);      
       
       if (this.model.get('criteria') === 'single' ) {
         if(this.model.get('modelAverages').get('all') > -1){
@@ -1792,20 +1826,24 @@ template: _.template(''),
   <div class="criteria row">\n\
     <div class="accordion">\n\
       <div class="accordion-top row">\n\
-        <a href="#" class="accordion-open accordion-toggle">More</a>\n\
-        <a href="#" class="accordion-close accordion-toggle">Less</a>\n\
+        <a href="#" class="accordion-open accordion-toggle icon-accordion-toggle">More</a>\n\
+        <a href="#" class="accordion-close accordion-toggle icon-accordion-toggle">Less</a>\n\
         <div class="col-left">\n\
           <div class="title-score-wrap">\n\
           <div class="title-score">\n\
-            <% if (report === "entity" && score === 100) { %>\n\
+            <% if (report === "entity" && score === 100 && criteria === "single") { %>\n\
               <span class="icon-score-pass"></span>\n\
-            <% } else if (report === "entity" && score === 0) { %>\n\
+            <% } else if (report === "entity" && score === 0 && criteria === "single") { %>\n\
               <span class="icon-score-fail"></span>\n\
             <% } else { %>\n\
-            <span class="icon-score"></span><span class="the-score"><%= score %>%</span>\n\
+              <% if (score === 0) { %> \n\
+                <span class="icon-score-inverse"></span><span class="the-score active"><%= score %>%</span>\n\
+              <% } else { %>\n\
+                <span class="icon-score"></span><span class="the-score"><%= score %>%</span>\n\
+              <% } %>\n\
             <% } %>\n\
           </div>\n\
-          <div class="title"><%= title %></div>\n\
+          <div class="title"><a href="#" class="accordion-toggle">\n\<%= title %></a></div>\n\
         </div><!-- .title-score-wrap -->\n\
         </div><!-- .col-left -->\n\
         <div class="col-right">\n\
@@ -1967,6 +2005,7 @@ template: _.template(''),
     attributes: { class: 'time-graph'},
     events : {      
       "plothover .time-plot" : "plothover",
+      "plotclick .time-plot" : "plotclick",
     }, 
     plotOptions: {
       yaxis: {
@@ -2023,7 +2062,7 @@ template: _.template(''),
     },
     lineOptions:function(report,options){
       var line_width  = 1.7;
-      var line_width_main  = 2;
+      var line_width_main  = 2.5;
       if (report === 'all') { 
         if(app.Control.get('report') === 'all') {
           return $.extend(options,{lines:{show:true,lineWidth:line_width_main}});
@@ -2118,27 +2157,43 @@ template: _.template(''),
         $('.plot-wrapper-'+this.cid+' .legend').html(this.template_legend($.extend(this.model.attributes,{report:app.Control.get('report')})));
       }      
     },
+    plotclick : function(event, pos, item){
+      console.log('plotclick');
+      event.preventDefault();
+      // there must be a better way
+      if ( item ) {
+        
+        app.App.navigate(
+            item.datapoint[0] 
+              + '/report/' 
+              + app.Control.get('report') 
+              + '-'
+              + app.Control.get('id'), 
+            {trigger: true});
+      }
+    },            
     plothover : function(event, pos, item){
       var ofsh, ofsw;
-        if ( this.hoverTip )
-          this.hoverTip.remove();
-        if (item) {
+      if ( this.hoverTip )
+        this.hoverTip.remove();
+      if (item) {
+        document.body.style.cursor = 'pointer';
 
-          this.hoverTip = $(this.toolTipHTML(item.datapoint));
+        this.hoverTip = $(this.toolTipHTML(item.datapoint));
 
-          this.$('.time-plot').parent().append(this.hoverTip);
-          
-          ofsh = this.hoverTip.outerHeight();
-          ofsw = this.hoverTip.outerWidth();
+        this.$('.time-plot').parent().append(this.hoverTip);
 
-          this.hoverTip.offset({
-            left: item.pageX - ofsw / 2,
-            top: item.pageY - ofsh - 15
-          });          
-        
-				} else {
-					$(".tooltip-time").hide();
-				}
+        ofsh = this.hoverTip.outerHeight();
+        ofsw = this.hoverTip.outerWidth();
+
+        this.hoverTip.offset({
+          left: item.pageX - ofsw / 2,
+          top: item.pageY - ofsh - 15
+        });          
+
+      } else {
+        document.body.style.cursor = 'default';
+      }
       
     },                
     toolTipHTML :function(stat) {
@@ -2640,24 +2695,33 @@ template: _.template('\
       this.doc.line(attr.x+3.69,attr.y+3.69,attr.x+8.31,attr.y+8.31);
       this.doc.line(attr.x+3.69,attr.y+8.31,attr.x+8.31,attr.y+3.69);
     },            
-    addCriteriaTitle : function(title,score,report,attr){
+    addCriteriaTitle : function(title,score,report,criteria,attr){
       var image_key = 'details_' + report + '_';
       
       var score_offset = 2.2;
       if (score < 10 ) {
-        score_offset = 4;
+        score_offset = 3.2;
       } else if (score > 99 ) {
         score_offset = 1.2;
       }
-      if (report === 'entity' && score === 100 ) {
+      if (report === 'entity' && score === 100 && criteria === 'single') {
           this.addCircle({x:attr.x+6,y:attr.y+9.8,r:6,color:COLORS[report]});
           this.addTick({x:attr.x,y:attr.y+4,color:COLORS.white});          
-        } else if (report === 'entity' && score === 0 ) {
+      } else if (report === 'entity' && score === 0 && criteria === 'single') {
           this.addCircle({x:attr.x+6,y:attr.y+9.8,r:6,color:COLORS.lighter})
           this.addCross({x:attr.x,y:attr.y+4,color:COLORS.entity});                 
       } else {
-        this.addCircle({x:attr.x+6,y:attr.y+9.8,r:6,color:COLORS[report]});
-        this.addText(score + '%','detail_score',{x:attr.x+score_offset,y:attr.y+this.defaults.offsets.detail_title.y,yalign:'center'});
+        if (score === 0) { 
+          this.addCircle({x:attr.x+6,y:attr.y+9.8,r:6,color:COLORS.lighter});
+          this.addText(score + '%','detail_score',{
+            color:COLORS[report],
+            x:attr.x+score_offset,
+            y:attr.y+this.defaults.offsets.detail_title.y,
+            yalign:'center'});        
+        } else {
+          this.addCircle({x:attr.x+6,y:attr.y+9.8,r:6,color:COLORS[report]});
+          this.addText(score + '%','detail_score',{x:attr.x+score_offset,y:attr.y+this.defaults.offsets.detail_title.y,yalign:'center'});
+        }
       }
       this.addText(title,'detail_title',{x:attr.x+this.defaults.offsets.detail_title.x,y:attr.y+this.defaults.offsets.detail_title.y,yalign:'center'});
       this.addLine('half_line',{x:attr.x,y:attr.y+20});

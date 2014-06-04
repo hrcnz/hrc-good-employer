@@ -113,9 +113,8 @@ Customised: TF
     text-decoration: none;
 
     border: 0;
-    background-image: url('../img/icons/select-remove.png');
-    background-position: 0 0;
-    background-size: 28px 28px;
+    background-image: url('../img/hrc-sprite.png');
+    background-position: 0 -1600px;
     height: 28px;
     width:28px;
     cursor: pointer;
@@ -193,9 +192,8 @@ Customised: TF
 }
 .select2-container .select2-choice .select2-arrow b {
     display: block;
-    background-image: url('../img/icons/select-open.png');
-    background-position: 0 0;
-    background-size: 28px 28px;
+    background-image: url('../img/hrc-sprite.png');
+    background-position: 0 -1500px;
     height: 28px;
     width:28px;
     position: relative;
@@ -215,10 +213,9 @@ Customised: TF
 }
 
 .select2-search input {
-    background-image: url("../img/icons/search.png");
-    background-position: right center;
+    background-image: url('../img/hrc-sprite.png');
+    background-position: 148px -1300px;
     background-repeat: no-repeat;
-    background-size: 28px auto;
     border: 1px solid #AAAAAA;
     font-family: sans-serif;
     font-size: 1em;
@@ -260,7 +257,8 @@ Customised: TF
     filter: none;
 }
 .select2-dropdown-open .select2-choice .select2-arrow b {
-    background-image: url('../img/icons/select-close.png');
+    background-image: url('../img/hrc-sprite.png');
+    background-position:0 -1550px;
 }
 
 .select2-hidden-accessible {
@@ -569,7 +567,7 @@ html[dir="rtl"] .select2-search-choice-close {
     .select2-search-choice-close,
     .select2-container .select2-choice abbr,
     .select2-container .select2-choice .select2-arrow b {
-        background-image: url('select2x2.png') !important;
+        background-image: url('../img/hrc-sprite@2.png')  !important;
         background-repeat: no-repeat !important;
         background-size: 60px 40px !important;
     }
