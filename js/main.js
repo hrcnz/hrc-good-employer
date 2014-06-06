@@ -2006,7 +2006,7 @@ template: _.template('')
       this.ticks = [[0,'0%'],[50,'50%'],[100,'100%']];
       this.axis_padding = 0.05;
     },
-    attributes: { class: 'time-graph'},
+    attributes: { 'class': 'time-graph'},
     events : {      
       "plothover .time-plot" : "plothover",
       "plotclick .time-plot" : "plotclick"
