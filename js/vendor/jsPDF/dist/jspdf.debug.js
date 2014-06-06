@@ -1,7 +1,7 @@
 /** @preserve
  * jsPDF - PDF Document creation from JavaScript
- * Version 1.0.106-git Built on 2014-04-16T20:28
- *                           CommitID 71dbc3a379
+ * Version 1.0.150-git Built on 2014-05-30T00:40
+ *                           CommitID dcbc9fcb9b
  *
  * Copyright (c) 2010-2014 James Hall, https://github.com/MrRio/jsPDF
  *               2010 Aaron Spike, https://github.com/acspike
@@ -79,7 +79,8 @@ var jsPDF = (function(global) {
 			'legal'             : [612,  1008],
 			'junior-legal'      : [576,   360],
 			'ledger'            : [1224,  792],
-			'tabloid'           : [792,  1224]
+			'tabloid'           : [792,  1224],
+			'credit-card'       : [153,   243]
 		};
 
 	/**
@@ -555,7 +556,7 @@ var jsPDF = (function(global) {
 				bch = ch >> 8; // divide by 256
 				if (bch >> 8) {
 					/* something left after dividing by 256 second time */
-					throw new Error("Character at position " + i.toString(10) + " of string '"
+					throw new Error("Character at position " + i + " of string '"
 						+ text + "' exceeds 16bits. Cannot be encoded into UCS-2 BE");
 				}
 				newtext.push(bch);
@@ -623,10 +624,10 @@ var jsPDF = (function(global) {
 			out(drawColor);
 			// resurrecting non-default line caps, joins
 			if (lineCapID !== 0) {
-				out(lineCapID.toString(10) + ' J');
+				out(lineCapID + ' J');
 			}
 			if (lineJoinID !== 0) {
-				out(lineJoinID.toString(10) + ' j');
+				out(lineJoinID + ' j');
 			}
 			events.publish('addPage', { pageNumber : page });
 		},
@@ -930,6 +931,10 @@ var jsPDF = (function(global) {
 			 *    T* (line three) Tj
 			 *   ET
 			 */
+			function ESC(s) {
+				s = s.split("\t").join(Array(options.TabLen||9).join(" "));
+				return pdfEscape(s, flags);
+			}
 
 			// Pre-August-2012 the order of arguments was function(x, y, text, flags)
 			// in effort to make all calls have similar signature like
@@ -969,14 +974,14 @@ var jsPDF = (function(global) {
 				flags.autoencode = true;
 
 			if (typeof text === 'string') {
-				text = pdfEscape(text, flags);
+				text = ESC(text);
 			} else if (text instanceof Array) {
 				// we don't want to destroy  original text array, so cloning it
 				var sa = text.concat(), da = [], len = sa.length;
 				// we do array.join('text that must not be PDFescaped")
 				// thus, pdfEscape each component separately
 				while (len--) {
-					da.push(pdfEscape(sa.shift(), flags));
+					da.push(ESC(sa.shift()));
 				}
 				text = da.join(") Tj\nT* (");
 			} else {
@@ -1001,10 +1006,7 @@ var jsPDF = (function(global) {
 		};
 
 		API.line = function(x1, y1, x2, y2) {
-			out(
-				f2(x1 * k) + ' ' + f2((pageHeight - y1) * k) + ' m ' +
-				f2(x2 * k) + ' ' + f2((pageHeight - y2) * k) + ' l S');
-			return this;
+			return this.lines([[x2 - x1, y2 - y1]], x1, y1);
 		};
 
 		/**
@@ -1578,7 +1580,7 @@ var jsPDF = (function(global) {
 				throw new Error("Line cap style of '" + style + "' is not recognized. See or extend .CapJoinStyles property for valid styles");
 			}
 			lineCapID = id;
-			out(id.toString(10) + ' J');
+			out(id + ' J');
 
 			return this;
 		};
@@ -1599,7 +1601,7 @@ var jsPDF = (function(global) {
 				throw new Error("Line join style of '" + style + "' is not recognized. See or extend .CapJoinStyles property for valid styles");
 			}
 			lineJoinID = id;
-			out(id.toString(10) + ' j');
+			out(id + ' j');
 
 			return this;
 		};
@@ -1695,9 +1697,9 @@ var jsPDF = (function(global) {
 	 * pdfdoc.mymethod() // <- !!!!!!
 	 */
 	jsPDF.API = {events:[]};
-	jsPDF.version = "1.0.106-debug 2014-04-16T20:28:diegocr";
+	jsPDF.version = "1.0.150-debug 2014-05-30T00:40:diegocr";
 
-	if (typeof define === 'function') {
+	if (typeof define === 'function' && define.amd) {
 		define(function() {
 			return jsPDF;
 		});
@@ -1705,7 +1707,7 @@ var jsPDF = (function(global) {
 		global.jsPDF = jsPDF;
 	}
 	return jsPDF;
-}(self));
+}(typeof self !== "undefined" && self || typeof window !== "undefined" && window || this));
 /**
  * jsPDF addHTML PlugIn
  * Copyright (c) 2014 Diego Casorran
@@ -1721,6 +1723,7 @@ var jsPDF = (function(global) {
 	 * Renders an HTML element to canvas object which added as an image to the PDF
 	 *
 	 * This PlugIn requires html2canvas: https://github.com/niklasvh/html2canvas
+	 *            OR rasterizeHTML: https://github.com/cburgmer/rasterizeHTML.js
 	 *
 	 * @public
 	 * @function
@@ -1737,8 +1740,10 @@ var jsPDF = (function(global) {
 	jsPDFAPI.addHTML = function (element, x, y, options, callback) {
 		'use strict';
 
-		if(typeof html2canvas === 'undefined')
-			throw new Error('You need this: https://github.com/niklasvh/html2canvas');
+		if(typeof html2canvas === 'undefined' && typeof rasterizeHTML === 'undefined')
+			throw new Error('You need either '
+				+'https://github.com/niklasvh/html2canvas'
+				+' or https://github.com/cburgmer/rasterizeHTML.js');
 
 		if(typeof x !== 'number') {
 			options = x;
@@ -1750,27 +1755,73 @@ var jsPDF = (function(global) {
 			options = null;
 		}
 
+		var I = this.internal, K = I.scaleFactor, W = I.pageSize.width, H = I.pageSize.height;
+
 		options = options || {};
-		options.onrendered = function(canvas) {
+		options.onrendered = function(obj) {
 			x = parseInt(x) || 0;
 			y = parseInt(y) || 0;
 			var dim = options.dim || {};
 			var h = dim.h || 0;
-			var w = dim.w || Math.min(this.internal.pageSize.width,canvas.width/this.internal.scaleFactor) - x;
+			var w = dim.w || Math.min(W,obj.width/K) - x;
 
 			var format = 'JPEG';
 			if(options.format)
 				format = options.format;
 
-			var alias = Math.random().toString(35);
-			var args = [canvas, x,y,w,h, format,alias,'SLOW'];
+			if(obj.height > H && options.pagesplit) {
+				var crop = function() {
+					var cy = 0;
+					while(1) {
+						var canvas = document.createElement('canvas');
+						canvas.width = Math.min(W*K,obj.width);
+						canvas.height = Math.min(H*K,obj.height-cy);
+						var ctx = canvas.getContext('2d');
+						ctx.drawImage(obj,0,cy,obj.width,canvas.height,0,0,canvas.width,canvas.height);
+						var args = [canvas, x,cy?0:y,canvas.width/K,canvas.height/K, format,null,'SLOW'];
+						this.addImage.apply(this, args);
+						cy += canvas.height;
+						if(cy >= obj.height) break;
+						this.addPage();
+					}
+					callback(w,cy,null,args);
+				}.bind(this);
+				if(obj.nodeName === 'CANVAS') {
+					var img = new Image();
+					img.onload = crop;
+					img.src = obj.toDataURL("image/png");
+					obj = img;
+				} else {
+					crop();
+				}
+			} else {
+				var alias = Math.random().toString(35);
+				var args = [obj, x,y,w,h, format,alias,'SLOW'];
 
-			this.addImage.apply(this, args);
+				this.addImage.apply(this, args);
 
-			callback(w,h,alias,args);
+				callback(w,h,alias,args);
+			}
 		}.bind(this);
 
-		return html2canvas(element, options);
+		if(typeof html2canvas !== 'undefined' && !options.rstz) {
+			return html2canvas(element, options);
+		}
+
+		if(typeof rasterizeHTML !== 'undefined') {
+			var meth = 'drawDocument';
+			if(typeof element === 'string') {
+				meth = /^http/.test(element) ? 'drawURL' : 'drawHTML';
+			}
+			options.width = options.width || (W*K);
+			return rasterizeHTML[meth](element, void 0, options).then(function(r) {
+				options.onrendered(r.image);
+			}, function(e) {
+				callback(null,e);
+			});
+		}
+
+		return null;
 	};
 })(jsPDF.API);
 /** @preserve
@@ -1947,6 +1998,11 @@ var jsPDF = (function(global) {
 	}
 	, createDataURIFromElement = function(element, format) {
 
+		//if element is an image which uses data url defintion, just return the dataurl
+		if (element.nodeName === 'IMG' && element.hasAttribute('src') && (''+element.getAttribute('src')).indexOf('data:image/') === 0) {
+			return element.getAttribute('src');
+		}
+
 		if(element.nodeName === 'CANVAS') {
 			var canvas = element;
 		} else {
@@ -2080,7 +2136,7 @@ var jsPDF = (function(global) {
 	 * Check to see if ArrayBuffer is supported
 	 */
 	jsPDFAPI.supportsArrayBuffer = function() {
-		return typeof ArrayBuffer === 'function';
+		return typeof ArrayBuffer !== 'undefined' && typeof Uint8Array !== 'undefined';
 	};
 
 	/**
@@ -2100,9 +2156,11 @@ var jsPDF = (function(global) {
 	jsPDFAPI.isArrayBufferView = function(object) {
 		if(!this.supportsArrayBuffer())
 	        return false;
+		if(typeof Uint32Array === 'undefined')
+			return false;
 		return (object instanceof Int8Array ||
 				object instanceof Uint8Array ||
-				object instanceof Uint8ClampedArray ||
+				(typeof Uint8ClampedArray !== 'undefined' && object instanceof Uint8ClampedArray) ||
 				object instanceof Int16Array ||
 				object instanceof Uint16Array ||
 				object instanceof Int32Array ||
@@ -2440,7 +2498,7 @@ var jsPDF = (function(global) {
 		return this;
 	};
 })(jsPDF.API);
-/** ==================================================================== 
+/** ====================================================================
  * jsPDF Cell plugin
  * Copyright (c) 2013 Youssef Beddad, youssef.beddad@gmail.com
  *               2013 Eduardo Menezes de Morais, eduardo.morais@usp.br
@@ -2456,10 +2514,10 @@ var jsPDF = (function(global) {
  * distribute, sublicense, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -2488,7 +2546,8 @@ var jsPDF = (function(global) {
         },
         getLastCellPosition = function () {
             return lastCellPos;
-        };
+        },
+        NO_MARGINS = {left:0, top:0, bottom: 0};
 
     jsPDFAPI.setHeaderFunction = function (func) {
         headerFunction = func;
@@ -2520,9 +2579,11 @@ var jsPDF = (function(global) {
     };
 
     jsPDFAPI.cellAddPage = function () {
+        var margins = this.margins || NO_MARGINS;
+
         this.addPage();
 
-        setLastCellPosition(this.margins.left, this.margins.top, undefined, undefined);
+        setLastCellPosition(margins.left, margins.top, undefined, undefined);
         //setLastCellPosition(undefined, undefined, undefined, undefined, undefined);
         pages += 1;
     };
@@ -2543,7 +2604,8 @@ var jsPDF = (function(global) {
                 y = curCell.y;
             } else {
                 //New line
-                if ((curCell.y + curCell.h + h + margin) >= this.internal.pageSize.height - this.margins.bottom) {
+                var margins = this.margins || NO_MARGINS;
+                if ((curCell.y + curCell.h + h + margin) >= this.internal.pageSize.height - margins.bottom) {
                     this.cellAddPage();
                     if (this.printHeaders && this.tableHeaderRow) {
                         this.printHeaderRow(ln, true);
@@ -2645,7 +2707,9 @@ var jsPDF = (function(global) {
            autoSize        = false,
            printHeaders    = true,
            fontSize        = 12,
-           margins         = {left:0, top:0, bottom: 0, width: this.internal.pageSize.width};
+           margins         = NO_MARGINS;
+
+           margins.width = this.internal.pageSize.width;
 
         if (config) {
         //override config defaults if the user has specified non-default behavior:
@@ -2812,7 +2876,7 @@ var jsPDF = (function(global) {
 
             tableHeaderCell = this.tableHeaderRow[i];
             if (new_page) {
-                tableHeaderCell[1] = this.margins.top;
+                tableHeaderCell[1] = this.margins && this.margins.top || 0;
                 tempHeaderConf.push(tableHeaderCell);
             }
             tmpArray = [].concat(tableHeaderCell);
@@ -2831,6 +2895,8 @@ var jsPDF = (function(global) {
  * Copyright (c) 2012 Willow Systems Corporation, willow-systems.com
  *               2014 Juan Pablo Gaviria, https://github.com/juanpgaviria
  *               2014 Diego Casorran, https://github.com/diegocr
+ *               2014 Daniel Husar, https://github.com/danielhusar
+ *               2014 Wolfgang Gassler, https://github.com/woolfg
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -2853,514 +2919,832 @@ var jsPDF = (function(global) {
  * ====================================================================
  */
 
-(function(jsPDFAPI) {
-  var DrillForContent, FontNameDB, FontStyleMap, FontWeightMap, GetCSS, PurgeWhiteSpace, Renderer, ResolveFont, ResolveUnitedNumber, UnitedNumberMap, elementHandledElsewhere, images, loadImgs, process, tableToJson;
-  PurgeWhiteSpace = function(array) {
-    var fragment, i, l, lTrimmed, r, rTrimmed, trailingSpace;
-    i = 0;
-    l = array.length;
-    fragment = void 0;
-    lTrimmed = false;
-    rTrimmed = false;
-    while (!lTrimmed && i !== l) {
-      fragment = array[i] = array[i].trimLeft();
-      if (fragment) {
-        lTrimmed = true;
-      }
-      i++;
-    }
-    i = l - 1;
-    while (l && !rTrimmed && i !== -1) {
-      fragment = array[i] = array[i].trimRight();
-      if (fragment) {
-        rTrimmed = true;
-      }
-      i--;
-    }
-    r = /\s+$/g;
-    trailingSpace = true;
-    i = 0;
-    while (i !== l) {
-      fragment = array[i].replace(/\s+/g, " ");
-      if (trailingSpace) {
-        fragment = fragment.trimLeft();
-      }
-      if (fragment) {
-        trailingSpace = r.test(fragment);
-      }
-      array[i] = fragment;
-      i++;
-    }
-    return array;
-  };
-  Renderer = function(pdf, x, y, settings) {
-    this.pdf = pdf;
-    this.x = x;
-    this.y = y;
-    this.settings = settings;
-    this.init();
-    return this;
-  };
-  ResolveFont = function(css_font_family_string) {
-    var name, part, parts;
-    name = void 0;
-    parts = css_font_family_string.split(",");
-    part = parts.shift();
-    while (!name && part) {
-      name = FontNameDB[part.trim().toLowerCase()];
-      part = parts.shift();
-    }
-    return name;
-  };
-  ResolveUnitedNumber = function(css_line_height_string) {
-    var normal, undef, value;
-    undef = void 0;
-    normal = 16.00;
-    value = UnitedNumberMap[css_line_height_string];
-    if (value) {
-      return value;
-    }
-    value = {
-      "xx-small": 9,
-      "x-small": 11,
-      small: 13,
-      medium: 16,
-      large: 19,
-      "x-large": 23,
-      "xx-large": 28,
-      auto: 0
-    }[{
-      css_line_height_string: css_line_height_string
-    }];
-    if (value !== undef) {
-      return UnitedNumberMap[css_line_height_string] = value / normal;
-    }
-    if (value = parseFloat(css_line_height_string)) {
-      return UnitedNumberMap[css_line_height_string] = value / normal;
-    }
-    value = css_line_height_string.match(/([\d\.]+)(px)/);
-    if (value.length === 3) {
-      return UnitedNumberMap[css_line_height_string] = parseFloat(value[1]) / normal;
-    }
-    return UnitedNumberMap[css_line_height_string] = 1;
-  };
-  GetCSS = function(element) {
-    var css, tmp, computedCSSElement;
-    computedCSSElement = (function(el) {
-      var compCSS;
-      compCSS = (function(el) {
-        if ( document.defaultView && document.defaultView.getComputedStyle ) {
-          return document.defaultView.getComputedStyle(el, null);
-        } else if ( el.currentStyle ) {
-          return el.currentStyle;
-        } else {
-          return el.style;
-        }
-      })(el);
-      return function(prop) {
-        prop = prop.replace(/-\D/g, function(match){
-          return match.charAt(1).toUpperCase();
-        })
-        return compCSS[prop];
-      }
-    })(element);
-    css = {};
-    tmp = void 0;
-    css["font-family"] = ResolveFont(computedCSSElement("font-family")) || "times";
-    css["font-style"] = FontStyleMap[computedCSSElement("font-style")] || "normal";
-    tmp = FontWeightMap[computedCSSElement("font-weight")] || "normal";
-    if (tmp === "bold") {
-      if (css["font-style"] === "normal") {
-        css["font-style"] = tmp;
-      } else {
-        css["font-style"] = tmp + css["font-style"];
-      }
-    }
-    css["font-size"] = ResolveUnitedNumber(computedCSSElement("font-size")) || 1;
-    css["line-height"] = ResolveUnitedNumber(computedCSSElement("line-height")) || 1;
-    css["display"] = (computedCSSElement("display") === "inline" ? "inline" : "block");
-    if (css["display"] === "block") {
-      css["margin-top"] = ResolveUnitedNumber(computedCSSElement("margin-top")) || 0;
-      css["margin-bottom"] = ResolveUnitedNumber(computedCSSElement("margin-bottom")) || 0;
-      css["padding-top"] = ResolveUnitedNumber(computedCSSElement("padding-top")) || 0;
-      css["padding-bottom"] = ResolveUnitedNumber(computedCSSElement("padding-bottom")) || 0;
-      css["margin-left"] = ResolveUnitedNumber(computedCSSElement("margin-left")) || 0;
-      css["margin-right"] = ResolveUnitedNumber(computedCSSElement("margin-right")) || 0;
-      css["padding-left"] = ResolveUnitedNumber(computedCSSElement("padding-left")) || 0;
-      css["padding-right"] = ResolveUnitedNumber(computedCSSElement("padding-right")) || 0;
-    }
-    return css;
-  };
-  elementHandledElsewhere = function(element, renderer, elementHandlers) {
-    var handlers, i, isHandledElsewhere, l, t;
-    isHandledElsewhere = false;
-    i = void 0;
-    l = void 0;
-    t = void 0;
-    handlers = elementHandlers["#" + element.id];
-    if (handlers) {
-      if (typeof handlers === "function") {
-        isHandledElsewhere = handlers(element, renderer);
-      } else {
-        i = 0;
-        l = handlers.length;
-        while (!isHandledElsewhere && i !== l) {
-          isHandledElsewhere = handlers[i](element, renderer);
-          i++;
-        }
-      }
-    }
-    handlers = elementHandlers[element.nodeName];
-    if (!isHandledElsewhere && handlers) {
-      if (typeof handlers === "function") {
-        isHandledElsewhere = handlers(element, renderer);
-      } else {
-        i = 0;
-        l = handlers.length;
-        while (!isHandledElsewhere && i !== l) {
-          isHandledElsewhere = handlers[i](element, renderer);
-          i++;
-        }
-      }
-    }
-    return isHandledElsewhere;
-  };
-  tableToJson = function(table, renderer) {
-    var data, headers, i, j, rowData, tableRow, table_obj, table_with, cell, l;
-    data = [];
-    headers = [];
-    i = 0;
-    l = table.rows[0].cells.length;
-    table_with = table.clientWidth;
-    while (i < l) {
-      cell = table.rows[0].cells[i];
-      headers[i] = {
-        name: cell.textContent.toLowerCase().replace(/\s+/g,''),
-        prompt: cell.textContent.replace(/\r?\n/g,''),
-        width: (cell.clientWidth / table_with) * renderer.pdf.internal.pageSize.width
-      };
-      i++;
-    }
-    i = 1;
-    while (i < table.rows.length) {
-      tableRow = table.rows[i];
-      rowData = {};
-      j = 0;
-      while (j < tableRow.cells.length) {
-        rowData[headers[j].name] = tableRow.cells[j].textContent.replace(/\r?\n/g,'');
-        j++;
-      }
-      data.push(rowData);
-      i++;
-    }
-    return table_obj = {
-      rows: data,
-      headers: headers
-    };
-  };
-  var SkipNode = {
-    SCRIPT   : 1,
-    STYLE    : 1,
-    NOSCRIPT : 1,
-    OBJECT   : 1,
-    EMBED    : 1
-  };
-  DrillForContent = function(element, renderer, elementHandlers) {
-    var cn, cns, fragmentCSS, i, isBlock, l, px2pt, table2json;
-    cns = element.childNodes;
-    cn = void 0;
-    fragmentCSS = GetCSS(element);
-    isBlock = fragmentCSS.display === "block";
-    if (isBlock) {
-      renderer.setBlockBoundary();
-      renderer.setBlockStyle(fragmentCSS);
-    }
-    px2pt = 0.264583 * 72 / 25.4;
-    i = 0;
-    l = cns.length;
-    while (i < l) {
-      cn = cns[i];
-      if (typeof cn === "object") {
-        if (cn.nodeType === 8 && cn.nodeName === "#comment") {
-          if (cn.textContent.match("ADD_PAGE")) {
-            renderer.pdf.addPage();
-            renderer.y = renderer.pdf.margins_doc.top;
-          }
-        } else if (cn.nodeType === 1 && !SkipNode[cn.nodeName]) {
-          if (cn.nodeName === "IMG" && images[cn.getAttribute("src")]) {
-            if ((renderer.pdf.internal.pageSize.height - renderer.pdf.margins_doc.bottom < renderer.y + cn.height) && (renderer.y > renderer.pdf.margins_doc.top)) {
-              renderer.pdf.addPage();
-              renderer.y = renderer.pdf.margins_doc.top;
-            }
-            renderer.pdf.addImage(images[cn.getAttribute("src")], renderer.x, renderer.y, cn.width, cn.height);
-            renderer.y += cn.height;
-          } else if (cn.nodeName === "TABLE") {
-            table2json = tableToJson(cn, renderer);
-            renderer.y += 10;
-            renderer.pdf.table(renderer.x, renderer.y, table2json.rows, table2json.headers, {
-              autoSize: false,
-              printHeaders: true,
-              margins: renderer.pdf.margins_doc
-            });
-            renderer.y = renderer.pdf.lastCellPos.y + renderer.pdf.lastCellPos.h + 20;
-          } else {
-            if (!elementHandledElsewhere(cn, renderer, elementHandlers)) {
-              DrillForContent(cn, renderer, elementHandlers);
-            }
-          }
-        } else if (cn.nodeType === 3) {
-          renderer.addText(cn.nodeValue, fragmentCSS);
-        } else if (typeof cn === "string") {
-          renderer.addText(cn, fragmentCSS);
-        }
-      }
-      i++;
-    }
-    if (isBlock) {
-      return renderer.setBlockBoundary();
-    }
-  };
-  images = {};
-  loadImgs = function(element, renderer, elementHandlers, cb) {
-    var imgs = element.getElementsByTagName('img'), l = imgs.length, x = 0;
-    function done() {
-      DrillForContent(element, renderer, elementHandlers);
-      cb(renderer.dispose());
-    }
-    function loadImage(url) {
-      if(!url) return;
-      var img = new Image();
-      ++x;img.crossOrigin='';
-      img.onerror = img.onload = function() {
-        if(img.complete && img.width + img.height)
-          images[url] = images[url] || img;
-        if(!--x) done();
-      };
-      img.src = url;
-    }
-    while(l--)
-      loadImage(imgs[l].getAttribute("src"));
-    cb = cb || function() {};
-    return x || done();
-  };
-  process = function(pdf, element, x, y, settings, callback) {
-    if (!element) return false;
-    if (!element.parentNode) element = '' + element.innerHTML;
-    if (typeof element === "string") {
-      element = (function(element) {
-        var $frame, $hiddendiv, framename, visuallyhidden;
-        framename = "jsPDFhtmlText" + Date.now().toString() + (Math.random() * 1000).toFixed(0);
-        visuallyhidden = "position: absolute !important;" + "clip: rect(1px 1px 1px 1px); /* IE6, IE7 */" + "clip: rect(1px, 1px, 1px, 1px);" + "padding:0 !important;" + "border:0 !important;" + "height: 1px !important;" + "width: 1px !important; " + "top:auto;" + "left:-100px;" + "overflow: hidden;";
-        $hiddendiv = document.createElement('div');
-        $hiddendiv.style.cssText = visuallyhidden;
-        $hiddendiv.innerHTML = "<iframe style=\"height:1px;width:1px\" name=\"" + framename + "\" />";
-        document.body.appendChild($hiddendiv);
-        $frame = window.frames[framename];
-        $frame.document.body.innerHTML = element;
-        return $frame.document.body;
-      })(element.replace(/<\/?script[^>]*?>/gi,''));
-    }
-    var r = new Renderer(pdf, x, y, settings);
-    loadImgs.call(this, element, r, settings.elementHandlers, callback);
-    return r.dispose();
-  };
-  Renderer.prototype.init = function() {
-    this.paragraph = {
-      text: [],
-      style: []
-    };
-    return this.pdf.internal.write("q");
-  };
-  Renderer.prototype.dispose = function() {
-    this.pdf.internal.write("Q");
-    return {
-      x: this.x,
-      y: this.y
-    };
-  };
-  Renderer.prototype.splitFragmentsIntoLines = function(fragments, styles) {
-    var currentLineLength, defaultFontSize, ff, fontMetrics, fontMetricsCache, fragment, fragmentChopped, fragmentLength, fragmentSpecificMetrics, fs, k, line, lines, maxLineLength, style;
-    defaultFontSize = 12;
-    k = this.pdf.internal.scaleFactor;
-    fontMetricsCache = {};
-    ff = void 0;
-    fs = void 0;
-    fontMetrics = void 0;
-    fragment = void 0;
-    style = void 0;
-    fragmentSpecificMetrics = void 0;
-    fragmentLength = void 0;
-    fragmentChopped = void 0;
-    line = [];
-    lines = [line];
-    currentLineLength = 0;
-    maxLineLength = this.settings.width;
-    while (fragments.length) {
-      fragment = fragments.shift();
-      style = styles.shift();
-      if (fragment) {
-        ff = style["font-family"];
-        fs = style["font-style"];
-        fontMetrics = fontMetricsCache[ff + fs];
-        if (!fontMetrics) {
-          fontMetrics = this.pdf.internal.getFont(ff, fs).metadata.Unicode;
-          fontMetricsCache[ff + fs] = fontMetrics;
-        }
-        fragmentSpecificMetrics = {
-          widths: fontMetrics.widths,
-          kerning: fontMetrics.kerning,
-          fontSize: style["font-size"] * defaultFontSize,
-          textIndent: currentLineLength
-        };
-        fragmentLength = this.pdf.getStringUnitWidth(fragment, fragmentSpecificMetrics) * fragmentSpecificMetrics.fontSize / k;
-        if (currentLineLength + fragmentLength > maxLineLength) {
-          fragmentChopped = this.pdf.splitTextToSize(fragment, maxLineLength, fragmentSpecificMetrics);
-          line.push([fragmentChopped.shift(), style]);
-          while (fragmentChopped.length) {
-            line = [[fragmentChopped.shift(), style]];
-            lines.push(line);
-          }
-          currentLineLength = this.pdf.getStringUnitWidth(line[0][0], fragmentSpecificMetrics) * fragmentSpecificMetrics.fontSize / k;
-        } else {
-          line.push([fragment, style]);
-          currentLineLength += fragmentLength;
-        }
-      }
-    }
-    return lines;
-  };
-  Renderer.prototype.RenderTextFragment = function(text, style) {
-    var defaultFontSize, font;
-    if (this.pdf.internal.pageSize.height - this.pdf.margins_doc.bottom < this.y + this.pdf.internal.getFontSize()) {
-      this.pdf.internal.write("ET", "Q");
-      this.pdf.addPage();
-      this.y = this.pdf.margins_doc.top;
-      this.pdf.internal.write("q", "BT", this.pdf.internal.getCoordinateString(this.x), this.pdf.internal.getVerticalCoordinateString(this.y), "Td");
-    }
-    defaultFontSize = 12;
-    font = this.pdf.internal.getFont(style["font-family"], style["font-style"]);
-    return this.pdf.internal.write("/" + font.id, (defaultFontSize * style["font-size"]).toFixed(2), "Tf", "(" + this.pdf.internal.pdfEscape(text) + ") Tj");
-  };
-  Renderer.prototype.renderParagraph = function() {
-    var blockstyle, defaultFontSize, fontToUnitRatio, fragments, i, l, line, lines, maxLineHeight, out, paragraphspacing_after, paragraphspacing_before, priorblockstype, styles;
-    fragments = PurgeWhiteSpace(this.paragraph.text);
-    styles = this.paragraph.style;
-    blockstyle = this.paragraph.blockstyle;
-    priorblockstype = this.paragraph.blockstyle || {};
-    this.paragraph = {
-      text: [],
-      style: [],
-      blockstyle: {},
-      priorblockstyle: blockstyle
-    };
-    if (!fragments.join("").trim()) {
-      return;
-    }
-    lines = this.splitFragmentsIntoLines(fragments, styles);
-    line = void 0;
-    maxLineHeight = void 0;
-    defaultFontSize = 12;
-    fontToUnitRatio = defaultFontSize / this.pdf.internal.scaleFactor;
-    paragraphspacing_before = (Math.max((blockstyle["margin-top"] || 0) - (priorblockstype["margin-bottom"] || 0), 0) + (blockstyle["padding-top"] || 0)) * fontToUnitRatio;
-    paragraphspacing_after = ((blockstyle["margin-bottom"] || 0) + (blockstyle["padding-bottom"] || 0)) * fontToUnitRatio;
-    out = this.pdf.internal.write;
-    i = void 0;
-    l = void 0;
-    this.y += paragraphspacing_before;
-    out("q", "BT", this.pdf.internal.getCoordinateString(this.x), this.pdf.internal.getVerticalCoordinateString(this.y), "Td");
-    while (lines.length) {
-      line = lines.shift();
-      maxLineHeight = 0;
-      i = 0;
-      l = line.length;
-      while (i !== l) {
-        if (line[i][0].trim()) {
-          maxLineHeight = Math.max(maxLineHeight, line[i][1]["line-height"], line[i][1]["font-size"]);
-        }
-        i++;
-      }
-      out(0, (-1 * defaultFontSize * maxLineHeight).toFixed(2), "Td");
-      i = 0;
-      l = line.length;
-      while (i !== l) {
-        if (line[i][0]) {
-          this.RenderTextFragment(line[i][0], line[i][1]);
-        }
-        i++;
-      }
-      this.y += maxLineHeight * fontToUnitRatio;
-    }
-    out("ET", "Q");
-    return this.y += paragraphspacing_after;
-  };
-  Renderer.prototype.setBlockBoundary = function() {
-    return this.renderParagraph();
-  };
-  Renderer.prototype.setBlockStyle = function(css) {
-    return this.paragraph.blockstyle = css;
-  };
-  Renderer.prototype.addText = function(text, css) {
-    this.paragraph.text.push(text);
-    return this.paragraph.style.push(css);
-  };
-  FontNameDB = {
-    helvetica: "helvetica",
-    "sans-serif": "helvetica",
-    serif: "times",
-    times: "times",
-    "times new roman": "times",
-    monospace: "courier",
-    courier: "courier"
-  };
-  FontWeightMap = {
-    100: "normal",
-    200: "normal",
-    300: "normal",
-    400: "normal",
-    500: "bold",
-    600: "bold",
-    700: "bold",
-    800: "bold",
-    900: "bold",
-    normal: "normal",
-    bold: "bold",
-    bolder: "bold",
-    lighter: "normal"
-  };
-  FontStyleMap = {
-    normal: "normal",
-    italic: "italic",
-    oblique: "italic"
-  };
-  UnitedNumberMap = {
-    normal: 1
-    /*
-      Converts HTML-formatted text into formatted PDF text.
+(function (jsPDFAPI) {
+	var clone,
+	DrillForContent,
+	FontNameDB,
+	FontStyleMap,
+	FontWeightMap,
+	GetCSS,
+	PurgeWhiteSpace,
+	Renderer,
+	ResolveFont,
+	ResolveUnitedNumber,
+	UnitedNumberMap,
+	elementHandledElsewhere,
+	images,
+	loadImgs,
+	checkForFooter,
+	process,
+	tableToJson;
+	clone = (function () {
+		return function (obj) {
+			Clone.prototype = obj;
+			return new Clone()
+		};
+		function Clone() {}
+	})();
+	PurgeWhiteSpace = function (array) {
+		var fragment,
+		i,
+		l,
+		lTrimmed,
+		r,
+		rTrimmed,
+		trailingSpace;
+		i = 0;
+		l = array.length;
+		fragment = void 0;
+		lTrimmed = false;
+		rTrimmed = false;
+		while (!lTrimmed && i !== l) {
+			fragment = array[i] = array[i].trimLeft();
+			if (fragment) {
+				lTrimmed = true;
+			}
+			i++;
+		}
+		i = l - 1;
+		while (l && !rTrimmed && i !== -1) {
+			fragment = array[i] = array[i].trimRight();
+			if (fragment) {
+				rTrimmed = true;
+			}
+			i--;
+		}
+		r = /\s+$/g;
+		trailingSpace = true;
+		i = 0;
+		while (i !== l) {
+			fragment = array[i].replace(/\s+/g, " ");
+			if (trailingSpace) {
+				fragment = fragment.trimLeft();
+			}
+			if (fragment) {
+				trailingSpace = r.test(fragment);
+			}
+			array[i] = fragment;
+			i++;
+		}
+		return array;
+	};
+	Renderer = function (pdf, x, y, settings) {
+		this.pdf = pdf;
+		this.x = x;
+		this.y = y;
+		this.settings = settings;
+		this.init();
+		return this;
+	};
+	ResolveFont = function (css_font_family_string) {
+		var name,
+		part,
+		parts;
+		name = void 0;
+		parts = css_font_family_string.split(",");
+		part = parts.shift();
+		while (!name && part) {
+			name = FontNameDB[part.trim().toLowerCase()];
+			part = parts.shift();
+		}
+		return name;
+	};
+	ResolveUnitedNumber = function (css_line_height_string) {
 
-      Notes:
-      2012-07-18
-      Plugin relies on having browser, DOM around. The HTML is pushed into dom and traversed.
-      Plugin relies on jQuery for CSS extraction.
-      Targeting HTML output from Markdown templating, which is a very simple
-      markup - div, span, em, strong, p. No br-based paragraph separation supported explicitly (but still may work.)
-      Images, tables are NOT supported.
+		//IE8 issues
+		css_line_height_string = css_line_height_string === "auto" ? "0px" : css_line_height_string;
+		if (css_line_height_string.indexOf("em") > -1 && !isNaN(Number(css_line_height_string.replace("em", "")))) {
+			css_line_height_string = Number(css_line_height_string.replace("em", "")) * 18.719 + "px";
+		}
+		if (css_line_height_string.indexOf("pt") > -1 && !isNaN(Number(css_line_height_string.replace("pt", "")))) {
+			css_line_height_string = Number(css_line_height_string.replace("pt", "")) * 1.333 + "px";
+		}
 
-      @public
-      @function
-      @param HTML {String or DOM Element} HTML-formatted text, or pointer to DOM element that is to be rendered into PDF.
-      @param x {Number} starting X coordinate in jsPDF instance's declared units.
-      @param y {Number} starting Y coordinate in jsPDF instance's declared units.
-      @param settings {Object} Additional / optional variables controlling parsing, rendering.
-      @returns {Object} jsPDF instance
-    */
-  };
-  return jsPDFAPI.fromHTML = function(HTML, x, y, settings, callback, margins) {
-    "use strict";
-    this.margins_doc = margins || {top:0,bottom:0};
-    if(!settings) settings = {};
-    if(!settings.elementHandlers) settings.elementHandlers = {};
-    return process(this, HTML, x || 4, y || 4, settings, callback);
-  };
+		var normal,
+		undef,
+		value;
+		undef = void 0;
+		normal = 16.00;
+		value = UnitedNumberMap[css_line_height_string];
+		if (value) {
+			return value;
+		}
+		value = {
+			"xx-small"  :  9,
+			"x-small"   : 11,
+			small       : 13,
+			medium      : 16,
+			large       : 19,
+			"x-large"   : 23,
+			"xx-large"  : 28,
+			auto        :  0
+		}[{ css_line_height_string : css_line_height_string }];
+
+		if (value !== undef) {
+			return UnitedNumberMap[css_line_height_string] = value / normal;
+		}
+		if (value = parseFloat(css_line_height_string)) {
+			return UnitedNumberMap[css_line_height_string] = value / normal;
+		}
+		value = css_line_height_string.match(/([\d\.]+)(px)/);
+		if (value.length === 3) {
+			return UnitedNumberMap[css_line_height_string] = parseFloat(value[1]) / normal;
+		}
+		return UnitedNumberMap[css_line_height_string] = 1;
+	};
+	GetCSS = function (element) {
+		var css,
+		tmp,
+		computedCSSElement;
+		computedCSSElement = (function (el) {
+			var compCSS;
+			compCSS = (function (el) {
+				if (document.defaultView && document.defaultView.getComputedStyle) {
+					return document.defaultView.getComputedStyle(el, null);
+				} else if (el.currentStyle) {
+					return el.currentStyle;
+				} else {
+					return el.style;
+				}
+			})(el);
+			return function (prop) {
+				prop = prop.replace(/-\D/g, function (match) {
+					return match.charAt(1).toUpperCase();
+				});
+				return compCSS[prop];
+			};
+		})(element);
+		css = {};
+		tmp = void 0;
+		css["font-family"] = ResolveFont(computedCSSElement("font-family")) || "times";
+		css["font-style"] = FontStyleMap[computedCSSElement("font-style")] || "normal";
+		css["text-align"] = TextAlignMap[computedCSSElement("text-align")] || "left";
+		tmp = FontWeightMap[computedCSSElement("font-weight")] || "normal";
+		if (tmp === "bold") {
+			if (css["font-style"] === "normal") {
+				css["font-style"] = tmp;
+			} else {
+				css["font-style"] = tmp + css["font-style"];
+			}
+		}
+		css["font-size"] = ResolveUnitedNumber(computedCSSElement("font-size")) || 1;
+		css["line-height"] = ResolveUnitedNumber(computedCSSElement("line-height")) || 1;
+		css["display"] = (computedCSSElement("display") === "inline" ? "inline" : "block");
+		if (css["display"] === "block") {
+			css["margin-top"] = ResolveUnitedNumber(computedCSSElement("margin-top")) || 0;
+			css["margin-bottom"] = ResolveUnitedNumber(computedCSSElement("margin-bottom")) || 0;
+			css["padding-top"] = ResolveUnitedNumber(computedCSSElement("padding-top")) || 0;
+			css["padding-bottom"] = ResolveUnitedNumber(computedCSSElement("padding-bottom")) || 0;
+			css["margin-left"] = ResolveUnitedNumber(computedCSSElement("margin-left")) || 0;
+			css["margin-right"] = ResolveUnitedNumber(computedCSSElement("margin-right")) || 0;
+			css["padding-left"] = ResolveUnitedNumber(computedCSSElement("padding-left")) || 0;
+			css["padding-right"] = ResolveUnitedNumber(computedCSSElement("padding-right")) || 0;
+		}
+		return css;
+	};
+	elementHandledElsewhere = function (element, renderer, elementHandlers) {
+		var handlers,
+		i,
+		isHandledElsewhere,
+		l,
+		t;
+		isHandledElsewhere = false;
+		i = void 0;
+		l = void 0;
+		t = void 0;
+		handlers = elementHandlers["#" + element.id];
+		if (handlers) {
+			if (typeof handlers === "function") {
+				isHandledElsewhere = handlers(element, renderer);
+			} else {
+				i = 0;
+				l = handlers.length;
+				while (!isHandledElsewhere && i !== l) {
+					isHandledElsewhere = handlers[i](element, renderer);
+					i++;
+				}
+			}
+		}
+		handlers = elementHandlers[element.nodeName];
+		if (!isHandledElsewhere && handlers) {
+			if (typeof handlers === "function") {
+				isHandledElsewhere = handlers(element, renderer);
+			} else {
+				i = 0;
+				l = handlers.length;
+				while (!isHandledElsewhere && i !== l) {
+					isHandledElsewhere = handlers[i](element, renderer);
+					i++;
+				}
+			}
+		}
+		return isHandledElsewhere;
+	};
+	tableToJson = function (table, renderer) {
+		var data,
+		headers,
+		i,
+		j,
+		rowData,
+		tableRow,
+		table_obj,
+		table_with,
+		cell,
+		l;
+		data = [];
+		headers = [];
+		i = 0;
+		l = table.rows[0].cells.length;
+		table_with = table.clientWidth;
+		while (i < l) {
+			cell = table.rows[0].cells[i];
+			headers[i] = {
+				name : cell.textContent.toLowerCase().replace(/\s+/g, ''),
+				prompt : cell.textContent.replace(/\r?\n/g, ''),
+				width : (cell.clientWidth / table_with) * renderer.pdf.internal.pageSize.width
+			};
+			i++;
+		}
+		i = 1;
+		while (i < table.rows.length) {
+			tableRow = table.rows[i];
+			rowData = {};
+			j = 0;
+			while (j < tableRow.cells.length) {
+				rowData[headers[j].name] = tableRow.cells[j].textContent.replace(/\r?\n/g, '');
+				j++;
+			}
+			data.push(rowData);
+			i++;
+		}
+		return table_obj = {
+			rows : data,
+			headers : headers
+		};
+	};
+	var SkipNode = {
+		SCRIPT   : 1,
+		STYLE    : 1,
+		NOSCRIPT : 1,
+		OBJECT   : 1,
+		EMBED    : 1,
+		SELECT   : 1
+	};
+	var listCount = 1;
+	DrillForContent = function (element, renderer, elementHandlers) {
+		var cn,
+		cns,
+		fragmentCSS,
+		i,
+		isBlock,
+		l,
+		px2pt,
+		table2json,
+		cb;
+		cns = element.childNodes;
+		cn = void 0;
+		fragmentCSS = GetCSS(element);
+		isBlock = fragmentCSS.display === "block";
+		if (isBlock) {
+			renderer.setBlockBoundary();
+			renderer.setBlockStyle(fragmentCSS);
+		}
+		px2pt = 0.264583 * 72 / 25.4;
+		i = 0;
+		l = cns.length;
+		while (i < l) {
+			cn = cns[i];
+			if (typeof cn === "object") {
+
+				/*** HEADER rendering **/
+				if (cn.nodeType === 1 && cn.nodeName === 'HEADER') {
+					var header = cn;
+					//store old top margin
+					var oldMarginTop = renderer.pdf.margins_doc.top;
+					//subscribe for new page event and render header first on every page
+					renderer.pdf.internal.events.subscribe('addPage', function (pageInfo) {
+						//set current y position to old margin
+						renderer.y = oldMarginTop;
+						//render all child nodes of the header element
+						DrillForContent(header, renderer, elementHandlers);
+						//set margin to old margin + rendered header + 10 space to prevent overlapping
+						//important for other plugins (e.g. table) to start rendering at correct position after header
+						renderer.pdf.margins_doc.top = renderer.y + 10;
+						renderer.y += 10;
+					}, false);
+				}
+
+				if (cn.nodeType === 8 && cn.nodeName === "#comment") {
+					if (~cn.textContent.indexOf("ADD_PAGE")) {
+						renderer.pdf.addPage();
+						renderer.y = renderer.pdf.margins_doc.top;
+					}
+				} else if (cn.nodeType === 1 && !SkipNode[cn.nodeName]) {
+					if (cn.nodeName === "IMG" && images[cn.getAttribute("src")]) {
+						if ((renderer.pdf.internal.pageSize.height - renderer.pdf.margins_doc.bottom < renderer.y + cn.height) && (renderer.y > renderer.pdf.margins_doc.top)) {
+							renderer.pdf.addPage();
+							renderer.y = renderer.pdf.margins_doc.top;
+						}
+						renderer.pdf.addImage(images[cn.getAttribute("src")], renderer.x, renderer.y, cn.width, cn.height);
+						renderer.y += cn.height;
+					} else if (cn.nodeName === "TABLE") {
+						table2json = tableToJson(cn, renderer);
+						renderer.y += 10;
+						renderer.pdf.table(renderer.x, renderer.y, table2json.rows, table2json.headers, {
+							autoSize : false,
+							printHeaders : true,
+							margins : renderer.pdf.margins_doc
+						});
+						renderer.y = renderer.pdf.lastCellPos.y + renderer.pdf.lastCellPos.h + 20;
+					} else if (cn.nodeName === "OL" || cn.nodeName === "UL") {
+						listCount = 1;
+						if (!elementHandledElsewhere(cn, renderer, elementHandlers)) {
+							DrillForContent(cn, renderer, elementHandlers);
+						}
+						renderer.y += 10;
+					} else if (cn.nodeName === "LI") {
+						var temp = renderer.x;
+						renderer.x += cn.parentNode.nodeName === "UL" ? 22 : 10;
+						renderer.y += 3;
+						if (!elementHandledElsewhere(cn, renderer, elementHandlers)) {
+							DrillForContent(cn, renderer, elementHandlers);
+						}
+						renderer.x = temp;
+					} else {
+						if (!elementHandledElsewhere(cn, renderer, elementHandlers)) {
+							DrillForContent(cn, renderer, elementHandlers);
+						}
+					}
+				} else if (cn.nodeType === 3) {
+					var value = cn.nodeValue;
+					if (cn.nodeValue && cn.parentNode.nodeName === "LI") {
+						if (cn.parentNode.parentNode.nodeName === "OL") {
+							value = listCount++ + '. ' + value;
+						} else {
+							var fontPx = fragmentCSS["font-size"] * 16;
+							var radius = 2;
+							if (fontPx > 20) {
+								radius = 3;
+							}
+							cb = function (x, y) {
+								this.pdf.circle(x, y, radius, 'FD');
+							};
+						}
+					}
+					renderer.addText(value, fragmentCSS);
+				} else if (typeof cn === "string") {
+					renderer.addText(cn, fragmentCSS);
+				}
+			}
+			i++;
+		}
+
+		if (isBlock) {
+			return renderer.setBlockBoundary(cb);
+		}
+	};
+	images = {};
+	loadImgs = function (element, renderer, elementHandlers, cb) {
+		var imgs = element.getElementsByTagName('img'),
+		l = imgs.length,
+		x = 0;
+		function done() {
+			renderer.pdf.internal.events.publish('imagesLoaded');
+			cb();
+		}
+		function loadImage(url, width, height) {
+			if (!url)
+				return;
+			var img = new Image();
+			++x;
+			img.crossOrigin = '';
+			img.onerror = img.onload = function () {
+				if(img.complete) {
+					//to support data urls in images, set width and height
+					//as those values are not recognized automatically
+					if (img.src.indexOf('data:image/') === 0) {
+						img.width = width || img.width || 0;
+						img.height = height || img.height || 0;
+					}
+					//if valid image add to known images array
+					if (img.width + img.height) {
+					//TODO: use a hash since data URIs could greatly increase the memory usage
+						images[url] = images[url] || img;
+					}
+				}
+				if(!--x) {
+					done();
+				}
+			};
+			img.src = url;
+		}
+		while (l--)
+			loadImage(imgs[l].getAttribute("src"),imgs[l].width,imgs[l].height);
+		return x || done();
+	};
+	checkForFooter = function (elem, renderer, elementHandlers, callback) {
+		//check if we can found a <footer> element
+		var footer = elem.getElementsByTagName("footer");
+		if (footer.length > 0) {
+
+			footer = footer[0];
+
+			//bad hack to get height of footer
+			//creat dummy out and check new y after fake rendering
+			var oldOut = renderer.pdf.internal.write;
+			var oldY = renderer.y;
+			renderer.pdf.internal.write = function () {};
+			DrillForContent(footer, renderer, elementHandlers);
+			var footerHeight = Math.ceil(renderer.y - oldY) + 5;
+			renderer.y = oldY;
+			renderer.pdf.internal.write = oldOut;
+
+			//add 20% to prevent overlapping
+			renderer.pdf.margins_doc.bottom += footerHeight;
+
+			//Create function render header on every page
+			var renderFooter = function (pageInfo) {
+				var pageNumber = pageInfo !== undefined ? pageInfo.pageNumber : 1;
+				//set current y position to old margin
+				var oldPosition = renderer.y;
+				//render all child nodes of the header element
+				renderer.y = renderer.pdf.internal.pageSize.height - renderer.pdf.margins_doc.bottom;
+				renderer.pdf.margins_doc.bottom -= footerHeight;
+
+				//check if we have to add page numbers
+				var spans = footer.getElementsByTagName('span');
+				for (var i = 0; i < spans.length; ++i) {
+					//if we find some span element with class pageCounter, set the page
+					if ((" " + spans[i].className + " ").replace(/[\n\t]/g, " ").indexOf(" pageCounter ") > -1) {
+						spans[i].innerHTML = pageNumber;
+					}
+					//if we find some span element with class totalPages, set a variable which is replaced after rendering of all pages
+					if ((" " + spans[i].className + " ").replace(/[\n\t]/g, " ").indexOf(" totalPages ") > -1) {
+						spans[i].innerHTML = '###jsPDFVarTotalPages###';
+					}
+				}
+
+				//render footer content
+				DrillForContent(footer, renderer, elementHandlers);
+				//set bottom margin to previous height including the footer height
+				renderer.pdf.margins_doc.bottom += footerHeight;
+				//important for other plugins (e.g. table) to start rendering at correct position after header
+				renderer.y = oldPosition;
+			};
+
+			//check if footer contains totalPages which shoudl be replace at the disoposal of the document
+			var spans = footer.getElementsByTagName('span');
+			for (var i = 0; i < spans.length; ++i) {
+				if ((" " + spans[i].className + " ").replace(/[\n\t]/g, " ").indexOf(" totalPages ") > -1) {
+					renderer.pdf.internal.events.subscribe('htmlRenderingFinished', renderer.pdf.putTotalPages.bind(renderer.pdf, '###jsPDFVarTotalPages###'), true);
+				}
+			}
+
+			//register event to render footer on every new page
+			renderer.pdf.internal.events.subscribe('addPage', renderFooter, false);
+			//render footer on first page
+			renderFooter();
+
+			//prevent footer rendering
+			SkipNode['FOOTER'] = 1;
+
+		}
+
+		//footer preparation finished
+		callback();
+	};
+	process = function (pdf, element, x, y, settings, callback) {
+		if (!element)
+			return false;
+		if (typeof element !== "string" && !element.parentNode)
+			element = '' + element.innerHTML;
+		if (typeof element === "string") {
+			element = (function (element) {
+				var $frame,
+				$hiddendiv,
+				framename,
+				visuallyhidden;
+				framename = "jsPDFhtmlText" + Date.now().toString() + (Math.random() * 1000).toFixed(0);
+				visuallyhidden = "position: absolute !important;" + "clip: rect(1px 1px 1px 1px); /* IE6, IE7 */" + "clip: rect(1px, 1px, 1px, 1px);" + "padding:0 !important;" + "border:0 !important;" + "height: 1px !important;" + "width: 1px !important; " + "top:auto;" + "left:-100px;" + "overflow: hidden;";
+				$hiddendiv = document.createElement('div');
+				$hiddendiv.style.cssText = visuallyhidden;
+				$hiddendiv.innerHTML = "<iframe style=\"height:1px;width:1px\" name=\"" + framename + "\" />";
+				document.body.appendChild($hiddendiv);
+				$frame = window.frames[framename];
+				$frame.document.body.innerHTML = element;
+				return $frame.document.body;
+			})(element.replace(/<\/?script[^>]*?>/gi, ''));
+		}
+		var r = new Renderer(pdf, x, y, settings);
+		callback = callback || function () {};
+
+		// 1. load images
+		// 2. prepare optional footer elements
+		// 3. render content
+		loadImgs.call(this, element, r, settings.elementHandlers, function () {
+			checkForFooter.call(this, element, r, settings.elementHandlers, function () {
+				DrillForContent(element, r, settings.elementHandlers);
+				//send event dispose for final taks (e.g. footer totalpage replacement)
+				r.pdf.internal.events.publish('htmlRenderingFinished');
+				callback(r.dispose());
+			});
+		});
+
+		return r.dispose();
+	};
+	Renderer.prototype.init = function () {
+		this.paragraph = {
+			text : [],
+			style : []
+		};
+		return this.pdf.internal.write("q");
+	};
+	Renderer.prototype.dispose = function () {
+		this.pdf.internal.write("Q");
+		return {
+			x : this.x,
+			y : this.y
+		};
+	};
+	Renderer.prototype.splitFragmentsIntoLines = function (fragments, styles) {
+		var currentLineLength,
+		defaultFontSize,
+		ff,
+		fontMetrics,
+		fontMetricsCache,
+		fragment,
+		fragmentChopped,
+		fragmentLength,
+		fragmentSpecificMetrics,
+		fs,
+		k,
+		line,
+		lines,
+		maxLineLength,
+		style;
+		defaultFontSize = 12;
+		k = this.pdf.internal.scaleFactor;
+		fontMetricsCache = {};
+		ff = void 0;
+		fs = void 0;
+		fontMetrics = void 0;
+		fragment = void 0;
+		style = void 0;
+		fragmentSpecificMetrics = void 0;
+		fragmentLength = void 0;
+		fragmentChopped = void 0;
+		line = [];
+		lines = [line];
+		currentLineLength = 0;
+		maxLineLength = this.settings.width;
+		while (fragments.length) {
+			fragment = fragments.shift();
+			style = styles.shift();
+			if (fragment) {
+				ff = style["font-family"];
+				fs = style["font-style"];
+				fontMetrics = fontMetricsCache[ff + fs];
+				if (!fontMetrics) {
+					fontMetrics = this.pdf.internal.getFont(ff, fs).metadata.Unicode;
+					fontMetricsCache[ff + fs] = fontMetrics;
+				}
+				fragmentSpecificMetrics = {
+					widths : fontMetrics.widths,
+					kerning : fontMetrics.kerning,
+					fontSize : style["font-size"] * defaultFontSize,
+					textIndent : currentLineLength
+				};
+				fragmentLength = this.pdf.getStringUnitWidth(fragment, fragmentSpecificMetrics) * fragmentSpecificMetrics.fontSize / k;
+				if (currentLineLength + fragmentLength > maxLineLength) {
+					fragmentChopped = this.pdf.splitTextToSize(fragment, maxLineLength, fragmentSpecificMetrics);
+					line.push([fragmentChopped.shift(), style]);
+					while (fragmentChopped.length) {
+						line = [[fragmentChopped.shift(), style]];
+						lines.push(line);
+					}
+					currentLineLength = this.pdf.getStringUnitWidth(line[0][0], fragmentSpecificMetrics) * fragmentSpecificMetrics.fontSize / k;
+				} else {
+					line.push([fragment, style]);
+					currentLineLength += fragmentLength;
+				}
+			}
+		}
+
+		//if text alignment was set, set margin/indent of each line
+		if (style['text-align'] !== undefined && (style['text-align'] === 'center' || style['text-align'] === 'right' || style['text-align'] === 'justify')) {
+			for (var i = 0; i < lines.length; ++i) {
+				var length = this.pdf.getStringUnitWidth(lines[i][0][0], fragmentSpecificMetrics) * fragmentSpecificMetrics.fontSize / k;
+				//if there is more than on line we have to clone the style object as all lines hold a reference on this object
+				if (i > 0) {
+					lines[i][0][1] = clone(lines[i][0][1]);
+				}
+				var space = (maxLineLength - length);
+
+				if (style['text-align'] === 'right') {
+					lines[i][0][1]['margin-left'] = space;
+					//if alignment is not right, it has to be center so split the space to the left and the right
+				} else if (style['text-align'] === 'center') {
+					lines[i][0][1]['margin-left'] = space / 2;
+					//if justify was set, calculate the word spacing and define in by using the css property
+				} else if (style['text-align'] === 'justify') {
+					var countSpaces = lines[i][0][0].split(' ').length - 1;
+					lines[i][0][1]['word-spacing'] = space / countSpaces;
+					//ignore the last line in justify mode
+					if (i === (lines.length - 1)) {
+						lines[i][0][1]['word-spacing'] = 0;
+					}
+				}
+			}
+		}
+
+		return lines;
+	};
+	Renderer.prototype.RenderTextFragment = function (text, style) {
+		var defaultFontSize,
+		font;
+		if (this.pdf.internal.pageSize.height - this.pdf.margins_doc.bottom < this.y + this.pdf.internal.getFontSize()) {
+			this.pdf.internal.write("ET", "Q");
+			this.pdf.addPage();
+			this.y = this.pdf.margins_doc.top;
+			this.pdf.internal.write("q", "BT", this.pdf.internal.getCoordinateString(this.x), this.pdf.internal.getVerticalCoordinateString(this.y), "Td");
+		}
+		defaultFontSize = 12;
+		font = this.pdf.internal.getFont(style["font-family"], style["font-style"]);
+
+		//set the word spacing for e.g. justify style
+		if (style['word-spacing'] !== undefined && style['word-spacing'] > 0) {
+			this.pdf.internal.write(style['word-spacing'].toFixed(2), "Tw");
+		}
+
+		this.pdf.internal.write("/" + font.id, (defaultFontSize * style["font-size"]).toFixed(2), "Tf", "(" + this.pdf.internal.pdfEscape(text) + ") Tj");
+
+		//set the word spacing back to neutral => 0
+		if (style['word-spacing'] !== undefined) {
+			this.pdf.internal.write(0, "Tw");
+		}
+	};
+	Renderer.prototype.renderParagraph = function (cb) {
+		var blockstyle,
+		defaultFontSize,
+		fontToUnitRatio,
+		fragments,
+		i,
+		l,
+		line,
+		lines,
+		maxLineHeight,
+		out,
+		paragraphspacing_after,
+		paragraphspacing_before,
+		priorblockstype,
+		styles,
+		fontSize;
+		fragments = PurgeWhiteSpace(this.paragraph.text);
+		styles = this.paragraph.style;
+		blockstyle = this.paragraph.blockstyle;
+		priorblockstype = this.paragraph.blockstyle || {};
+		this.paragraph = {
+			text : [],
+			style : [],
+			blockstyle : {},
+			priorblockstyle : blockstyle
+		};
+		if (!fragments.join("").trim()) {
+			return;
+		}
+		lines = this.splitFragmentsIntoLines(fragments, styles);
+		line = void 0;
+		maxLineHeight = void 0;
+		defaultFontSize = 12;
+		fontToUnitRatio = defaultFontSize / this.pdf.internal.scaleFactor;
+		paragraphspacing_before = (Math.max((blockstyle["margin-top"] || 0) - (priorblockstype["margin-bottom"] || 0), 0) + (blockstyle["padding-top"] || 0)) * fontToUnitRatio;
+		paragraphspacing_after = ((blockstyle["margin-bottom"] || 0) + (blockstyle["padding-bottom"] || 0)) * fontToUnitRatio;
+		out = this.pdf.internal.write;
+		i = void 0;
+		l = void 0;
+		this.y += paragraphspacing_before;
+		out("q", "BT", this.pdf.internal.getCoordinateString(this.x), this.pdf.internal.getVerticalCoordinateString(this.y), "Td");
+
+		//stores the current indent of cursor position
+		var currentIndent = 0;
+		while (lines.length) {
+			line = lines.shift();
+			maxLineHeight = 0;
+			i = 0;
+			l = line.length;
+			while (i !== l) {
+				if (line[i][0].trim()) {
+					maxLineHeight = Math.max(maxLineHeight, line[i][1]["line-height"], line[i][1]["font-size"]);
+					fontSize = line[i][1]["font-size"] * 7;
+				}
+				i++;
+			}
+			//if we have to move the cursor to adapt the indent
+			var indentMove = 0;
+			//if a margin was added (by e.g. a text-alignment), move the cursor
+			if (line[0][1]["margin-left"] !== undefined && line[0][1]["margin-left"] > 0) {
+				wantedIndent = this.pdf.internal.getCoordinateString(line[0][1]["margin-left"]);
+				indentMove = wantedIndent - currentIndent;
+				currentIndent = wantedIndent;
+			}
+			//move the cursor
+			out(indentMove, (-1 * defaultFontSize * maxLineHeight).toFixed(2), "Td");
+			i = 0;
+			l = line.length;
+			while (i !== l) {
+				if (line[i][0]) {
+					this.RenderTextFragment(line[i][0], line[i][1]);
+				}
+				i++;
+			}
+			this.y += maxLineHeight * fontToUnitRatio;
+		}
+		if (cb && typeof cb === "function") {
+			cb.call(this, this.x - 9, this.y - fontSize / 2);
+		}
+		out("ET", "Q");
+		return this.y += paragraphspacing_after;
+	};
+	Renderer.prototype.setBlockBoundary = function (cb) {
+		return this.renderParagraph(cb);
+	};
+	Renderer.prototype.setBlockStyle = function (css) {
+		return this.paragraph.blockstyle = css;
+	};
+	Renderer.prototype.addText = function (text, css) {
+		this.paragraph.text.push(text);
+		return this.paragraph.style.push(css);
+	};
+	FontNameDB = {
+		helvetica         : "helvetica",
+		"sans-serif"      : "helvetica",
+		"times new roman" : "times",
+		serif             : "times",
+		times             : "times",
+		monospace         : "courier",
+		courier           : "courier"
+	};
+	FontWeightMap = {
+		100 : "normal",
+		200 : "normal",
+		300 : "normal",
+		400 : "normal",
+		500 : "bold",
+		600 : "bold",
+		700 : "bold",
+		800 : "bold",
+		900 : "bold",
+		normal  : "normal",
+		bold    : "bold",
+		bolder  : "bold",
+		lighter : "normal"
+	};
+	FontStyleMap = {
+		normal  : "normal",
+		italic  : "italic",
+		oblique : "italic"
+	};
+	TextAlignMap = {
+		left    : "left",
+		right   : "right",
+		center  : "center",
+		justify : "justify"
+	};
+	UnitedNumberMap = {
+		normal : 1
+	};
+	/**
+	 * Converts HTML-formatted text into formatted PDF text.
+	 *
+	 * Notes:
+	 * 2012-07-18
+	 * Plugin relies on having browser, DOM around. The HTML is pushed into dom and traversed.
+	 * Plugin relies on jQuery for CSS extraction.
+	 * Targeting HTML output from Markdown templating, which is a very simple
+	 * markup - div, span, em, strong, p. No br-based paragraph separation supported explicitly (but still may work.)
+	 * Images, tables are NOT supported.
+	 *
+	 * @public
+	 * @function
+	 * @param HTML {String or DOM Element} HTML-formatted text, or pointer to DOM element that is to be rendered into PDF.
+	 * @param x {Number} starting X coordinate in jsPDF instance's declared units.
+	 * @param y {Number} starting Y coordinate in jsPDF instance's declared units.
+	 * @param settings {Object} Additional / optional variables controlling parsing, rendering.
+	 * @returns {Object} jsPDF instance
+	 */
+	jsPDFAPI.fromHTML = function (HTML, x, y, settings, callback, margins) {
+		"use strict";
+
+		this.margins_doc = margins || {
+			top : 0,
+			bottom : 0
+		};
+		if (!settings)
+			settings = {};
+		if (!settings.elementHandlers)
+			settings.elementHandlers = {};
+		return process(this, HTML, x || 4, y || 4, settings, callback);
+	};
 })(jsPDF.API);
 /** ==================================================================== 
  * jsPDF JavaScript plugin
@@ -3765,9 +4149,9 @@ var jsPDF = (function(global) {
 			img, dp, trns,
 			colors, pal, smask;
 		
-		if(this.isString(imageData)) {
+	/*	if(this.isString(imageData)) {
 			
-		}
+		}*/
 		
 		if(this.isArrayBuffer(imageData))
 			imageData = new Uint8Array(imageData);
@@ -3927,7 +4311,7 @@ var jsPDF = (function(global) {
 										bpc, decode, imageIndex, alias, dp, trns, pal, smask);
 		}
 		
-		return info;
+		throw new Error("Unsupported PNG image data, try using JPEG instead.");
 	}
 
 })(jsPDF.API)
@@ -4112,11 +4496,11 @@ jsPDFAPI.addSVG = function(svgtext, x, y, w, h) {
 }
 
 })(jsPDF.API);
-/** @preserve 
-jsPDF split_text_to_size plugin
-Copyright (c) 2012 Willow Systems Corporation, willow-systems.com
-MIT license.
-*/
+/** @preserve
+ * jsPDF split_text_to_size plugin - MIT license.
+ * Copyright (c) 2012 Willow Systems Corporation, willow-systems.com
+ *               2014 Diego Casorran, https://github.com/diegocr
+ */
 /**
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -4125,10 +4509,10 @@ MIT license.
  * distribute, sublicense, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -4162,12 +4546,11 @@ var getCharWidthsArray = API.getCharWidthsArray = function(text, options){
 	, widthsFractionOf = widths.fof ? widths.fof : 1
 	, kerning = options.kerning ? options.kerning : this.internal.getFont().metadata.Unicode.kerning
 	, kerningFractionOf = kerning.fof ? kerning.fof : 1
-	
+
 	// console.log("widths, kergnings", widths, kerning)
 
 	var i, l
 	, char_code
-	, char_width
 	, prior_char_code = 0 // for kerning
 	, default_char_width = widths[0] || widthsFractionOf
 	, output = []
@@ -4175,7 +4558,7 @@ var getCharWidthsArray = API.getCharWidthsArray = function(text, options){
 	for (i = 0, l = text.length; i < l; i++) {
 		char_code = text.charCodeAt(i)
 		output.push(
-			( widths[char_code] || default_char_width ) / widthsFractionOf + 
+			( widths[char_code] || default_char_width ) / widthsFractionOf +
 			( kerning[char_code] && kerning[char_code][prior_char_code] || 0 ) / kerningFractionOf
 		)
 		prior_char_code = char_code
@@ -4210,7 +4593,7 @@ var getStringUnitWidth = API.getStringUnitWidth = function(text, options) {
 	return getArraySum(getCharWidthsArray.call(this, text, options))
 }
 
-/** 
+/**
 returns array of lines
 */
 var splitLongWord = function(word, widths_array, firstLineMaxLen, maxLen){
@@ -4256,10 +4639,6 @@ var splitParagraphIntoLines = function(text, maxlen, options){
 		options = {}
 	}
 
-	var spaceCharWidth = getCharWidthsArray(' ', options)[0]
-
-	var words = text.split(' ')
-
 	var line = []
 	, lines = [line]
 	, line_length = options.textIndent || 0
@@ -4267,14 +4646,43 @@ var splitParagraphIntoLines = function(text, maxlen, options){
 	, current_word_length = 0
 	, word
 	, widths_array
+	, words = text.split(' ')
+	, spaceCharWidth = getCharWidthsArray(' ', options)[0]
+	, i, l, tmp, lineIndent
 
-	var i, l, tmp
+	if(options.lineIndent === -1) {
+		lineIndent = words[0].length +2;
+	} else {
+		lineIndent = options.lineIndent || 0;
+	}
+	if(lineIndent) {
+		var pad = Array(lineIndent).join(" "), wrds = [];
+		words.map(function(wrd) {
+			wrd = wrd.split(/\s*\n/);
+			if(wrd.length > 1) {
+				wrds = wrds.concat(wrd.map(function(wrd, idx) {
+					return (idx && wrd.length ? "\n":"") + wrd;
+				}));
+			} else {
+				wrds.push(wrd[0]);
+			}
+		});
+		words = wrds;
+		lineIndent = getStringUnitWidth(pad, options);
+	}
+
 	for (i = 0, l = words.length; i < l; i++) {
+		var force = 0;
+
 		word = words[i]
+		if(lineIndent && word[0] == "\n") {
+			word = word.substr(1);
+			force = 1;
+		}
 		widths_array = getCharWidthsArray(word, options)
 		current_word_length = getArraySum(widths_array)
 
-		if (line_length + separator_length + current_word_length > maxlen) {
+		if (line_length + separator_length + current_word_length > maxlen || force) {
 			if (current_word_length > maxlen) {
 				// this happens when you have space-less long URLs for example.
 				// we just chop these to size. We do NOT insert hiphens
@@ -4295,8 +4703,7 @@ var splitParagraphIntoLines = function(text, maxlen, options){
 
 			// now we attach new line to lines
 			lines.push(line)
-
-			line_length = current_word_length
+			line_length = current_word_length + lineIndent
 			separator_length = spaceCharWidth
 
 		} else {
@@ -4307,12 +4714,15 @@ var splitParagraphIntoLines = function(text, maxlen, options){
 		}
 	}
 
-	var output = []
-	for (i = 0, l = lines.length; i < l; i++) {
-		output.push( lines[i].join(' ') )
+	if(lineIndent) {
+		var postProcess = function(ln, idx) {
+			return (idx ? pad : '') + ln.join(" ");
+		};
+	} else {
+		var postProcess = function(ln) { return ln.join(" ")};
 	}
-	return output
 
+	return lines.map(postProcess);
 }
 
 /**
@@ -4360,7 +4770,7 @@ API.splitTextToSize = function(text, maxlen, options) {
 			return 	{
 				widths: options.widths
 				, kerning: options.kerning
-			}			
+			}
 		}
 
 		// then use default values
@@ -4371,11 +4781,11 @@ API.splitTextToSize = function(text, maxlen, options) {
 	}).call(this, options)
 
 	// first we split on end-of-line chars
-	var paragraphs 
-	if (text.match(/[\n\r]/)) {
-		paragraphs = text.split(/\r\n|\r|\n/g)
+	var paragraphs
+	if(Array.isArray(text)) {
+		paragraphs = text;
 	} else {
-		paragraphs = [text]
+		paragraphs = text.split(/\r?\n/);
 	}
 
 	// now we convert size (max length of line) into "font size units"
@@ -4386,13 +4796,14 @@ API.splitTextToSize = function(text, maxlen, options) {
 	// this may change in the future?
 	// until then, proportional_maxlen is likely to be in 'points'
 
-	// If first line is to be indented (shorter or longer) than maxLen 
+	// If first line is to be indented (shorter or longer) than maxLen
 	// we indicate that by using CSS-style "text-indent" option.
 	// here it's in font units too (which is likely 'points')
 	// it can be negative (which makes the first line longer than maxLen)
-	newOptions.textIndent = options.textIndent ? 
-		options.textIndent * 1.0 * this.internal.scaleFactor / fsize : 
+	newOptions.textIndent = options.textIndent ?
+		options.textIndent * 1.0 * this.internal.scaleFactor / fsize :
 		0
+	newOptions.lineIndent = options.lineIndent;
 
 	var i, l
 	, output = []
@@ -4406,7 +4817,7 @@ API.splitTextToSize = function(text, maxlen, options) {
 		)
 	}
 
-	return output 
+	return output
 }
 
 })(jsPDF.API);
@@ -4846,12 +5257,12 @@ jsPDFAPI.putTotalPages = function(pageExpression) {
 })(jsPDF.API);
 /* Blob.js
  * A Blob implementation.
- * 2013-12-27
+ * 2014-05-27
  * 
  * By Eli Grey, http://eligrey.com
  * By Devin Samarin, https://github.com/eboyjr
  * License: X11/MIT
- *   See LICENSE.md
+ *   See https://github.com/eligrey/Blob.js/blob/master/LICENSE.md
  */
 
 /*global self, unescape */
@@ -4860,12 +5271,21 @@ jsPDFAPI.putTotalPages = function(pageExpression) {
 
 /*! @source http://purl.eligrey.com/github/Blob.js/blob/master/Blob.js */
 
-if (!(typeof Blob === "function" || typeof Blob === "object") || typeof URL === "undefined")
-if ((typeof Blob === "function" || typeof Blob === "object") && typeof webkitURL !== "undefined") self.URL = webkitURL;
-else var Blob = (function (view) {
+(function (view) {
 	"use strict";
 
-	var BlobBuilder = view.BlobBuilder || view.WebKitBlobBuilder || view.MozBlobBuilder || view.MSBlobBuilder || (function(view) {
+	view.URL = view.URL || view.webkitURL;
+
+	if (view.Blob && view.URL) {
+		try {
+			new Blob;
+			return;
+		} catch (e) {}
+	}
+
+	// Internally we use a BlobBuilder implementation to base Blob off of
+	// in order to support older browsers that only have BlobBuilder
+	var BlobBuilder = view.BlobBuilder || view.WebKitBlobBuilder || view.MozBlobBuilder || (function(view) {
 		var
 			  get_class = function(object) {
 				return Object.prototype.toString.call(object).match(/^\[object\s(.*)\]$/)[1];
@@ -4996,10 +5416,13 @@ else var Blob = (function (view) {
 		FB_proto.toString = function() {
 			return "[object Blob]";
 		};
+		FB_proto.close = function() {
+			this.size = this.data.length = 0;
+		};
 		return FakeBlobBuilder;
 	}(view));
 
-	return function Blob(blobParts, options) {
+	view.Blob = function Blob(blobParts, options) {
 		var type = options ? (options.type || "") : "";
 		var builder = new BlobBuilder();
 		if (blobParts) {
@@ -5010,13 +5433,13 @@ else var Blob = (function (view) {
 		return builder.getBlob(type);
 	};
 }(typeof self !== "undefined" && self || typeof window !== "undefined" && window || this.content || this));
-/*! FileSaver.js
+/* FileSaver.js
  *  A saveAs() FileSaver implementation.
- *  2014-01-24
+ *  2014-05-27
  *
  *  By Eli Grey, http://eligrey.com
  *  License: X11/MIT
- *    See LICENSE.md
+ *    See https://github.com/eligrey/FileSaver.js/blob/master/LICENSE.md
  */
 
 /*global self */
@@ -5038,11 +5461,10 @@ var saveAs = saveAs
 	}
 	var
 		  doc = view.document
-		  // only get URL when necessary in case BlobBuilder.js hasn't overridden it yet
+		  // only get URL when necessary in case Blob.js hasn't overridden it yet
 		, get_URL = function() {
 			return view.URL || view.webkitURL || view;
 		}
-		, URL = view.URL || view.webkitURL || view
 		, save_link = doc.createElementNS("http://www.w3.org/1999/xhtml", "a")
 		, can_use_save_link = !view.externalHost && "download" in save_link
 		, click = function(node) {
@@ -5068,7 +5490,7 @@ var saveAs = saveAs
 			while (i--) {
 				var file = deletion_queue[i];
 				if (typeof file === "string") { // file is an object URL
-					URL.revokeObjectURL(file);
+					get_URL().revokeObjectURL(file);
 				} else { // file is a File
 					file.remove();
 				}
@@ -5135,20 +5557,9 @@ var saveAs = saveAs
 			}
 			if (can_use_save_link) {
 				object_url = get_object_url(blob);
-				// FF for Android has a nasty garbage collection mechanism
-				// that turns all objects that are not pure javascript into 'deadObject'
-				// this means `doc` and `save_link` are unusable and need to be recreated
-				// `view` is usable though:
-				doc = view.document;
-				save_link = doc.createElementNS("http://www.w3.org/1999/xhtml", "a");
 				save_link.href = object_url;
 				save_link.download = name;
-				var event = doc.createEvent("MouseEvents");
-				event.initMouseEvent(
-					"click", true, false, view, 0, 0, 0, 0, 0
-					, false, false, false, false, 0, null
-				);
-				save_link.dispatchEvent(event);
+				click(save_link);
 				filesaver.readyState = filesaver.DONE;
 				dispatch_all();
 				return;
@@ -7525,7 +7936,7 @@ var Deflater = (function(obj) {
 */
 
 
-(function() {
+(function(global) {
   var PNG;
 
   PNG = (function() {
@@ -7563,7 +7974,7 @@ var Deflater = (function(obj) {
     APNG_BLEND_OP_OVER = 1;
 
     function PNG(data) {
-      var chunkSize, colors, palLen, delayDen, delayNum, frame, i, index, key, section, short, text, _i, _j, _ref;
+      var chunkSize, colors, palLen, delayDen, delayNum, frame, i, index, key, section, palShort, text, _i, _j, _ref;
       this.data = data;
       this.pos = 8;
       this.palette = [];
@@ -7642,10 +8053,10 @@ var Deflater = (function(obj) {
                 /*
                  * According to the PNG spec trns should be increased to the same size as palette if shorter
                  */
-                //short = 255 - this.transparency.indexed.length;
-                short = palLen - this.transparency.indexed.length;
-                if (short > 0) {
-                  for (i = _j = 0; 0 <= short ? _j < short : _j > short; i = 0 <= short ? ++_j : --_j) {
+                //palShort = 255 - this.transparency.indexed.length;
+                palShort = palLen - this.transparency.indexed.length;
+                if (palShort > 0) {
+                  for (i = _j = 0; 0 <= palShort ? _j < palShort : _j > palShort; i = 0 <= palShort ? ++_j : --_j) {
                     this.transparency.indexed.push(255);
                   }
                 }
@@ -7728,7 +8139,7 @@ var Deflater = (function(obj) {
     };
 
     PNG.prototype.decodePixels = function(data) {
-      var byte, c, col, i, left, length, p, pa, paeth, pb, pc, pixelBytes, pixels, pos, row, scanlineLength, upper, upperLeft, _i, _j, _k, _l, _m;
+      var abyte, c, col, i, left, length, p, pa, paeth, pb, pc, pixelBytes, pixels, pos, row, scanlineLength, upper, upperLeft, _i, _j, _k, _l, _m;
       if (data == null) {
         data = this.imgData;
       }
@@ -7753,31 +8164,31 @@ var Deflater = (function(obj) {
             break;
           case 1:
             for (i = _j = 0; _j < scanlineLength; i = _j += 1) {
-              byte = data[pos++];
+              abyte = data[pos++];
               left = i < pixelBytes ? 0 : pixels[c - pixelBytes];
-              pixels[c++] = (byte + left) % 256;
+              pixels[c++] = (abyte + left) % 256;
             }
             break;
           case 2:
             for (i = _k = 0; _k < scanlineLength; i = _k += 1) {
-              byte = data[pos++];
+              abyte = data[pos++];
               col = (i - (i % pixelBytes)) / pixelBytes;
               upper = row && pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)];
-              pixels[c++] = (upper + byte) % 256;
+              pixels[c++] = (upper + abyte) % 256;
             }
             break;
           case 3:
             for (i = _l = 0; _l < scanlineLength; i = _l += 1) {
-              byte = data[pos++];
+              abyte = data[pos++];
               col = (i - (i % pixelBytes)) / pixelBytes;
               left = i < pixelBytes ? 0 : pixels[c - pixelBytes];
               upper = row && pixels[(row - 1) * scanlineLength + col * pixelBytes + (i % pixelBytes)];
-              pixels[c++] = (byte + Math.floor((left + upper) / 2)) % 256;
+              pixels[c++] = (abyte + Math.floor((left + upper) / 2)) % 256;
             }
             break;
           case 4:
             for (i = _m = 0; _m < scanlineLength; i = _m += 1) {
-              byte = data[pos++];
+              abyte = data[pos++];
               col = (i - (i % pixelBytes)) / pixelBytes;
               left = i < pixelBytes ? 0 : pixels[c - pixelBytes];
               if (row === 0) {
@@ -7797,7 +8208,7 @@ var Deflater = (function(obj) {
               } else {
                 paeth = upperLeft;
               }
-              pixels[c++] = (byte + paeth) % 256;
+              pixels[c++] = (abyte + paeth) % 256;
             }
             break;
           default:
@@ -7868,9 +8279,12 @@ var Deflater = (function(obj) {
       return ret;
     };
 
-    scratchCanvas = document.createElement('canvas');
-
-    scratchCtx = scratchCanvas.getContext('2d');
+    try {
+        scratchCanvas = global.document.createElement('canvas');
+        scratchCtx = scratchCanvas.getContext('2d');
+    } catch(e) {
+        return -1;
+    }
 
     makeImage = function(imageData) {
       var img;
@@ -7964,9 +8378,9 @@ var Deflater = (function(obj) {
 
   })();
 
-  window.PNG = PNG;
+  global.PNG = PNG;
 
-}).call(this);
+})(typeof window !== "undefined" && window || this);
 /*
  * Extracted from pdf.js
  * https://github.com/andreasgal/pdf.js
@@ -8091,6 +8505,9 @@ var DecodeStream = (function() {
 })();
 
 var FlateStream = (function() {
+  if (typeof Uint32Array === 'undefined') {
+    return undefined;
+  }
   var codeLenCodeMap = new Uint32Array([
     16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15
   ]);
@@ -8553,6 +8970,13 @@ var FlateStream = (function() {
 		};
 	}
 
+
+	if(!Array.isArray) {
+		Array.isArray = function(arg) {
+			return Object.prototype.toString.call(arg) === '[object Array]';
+		};
+	}
+
 	if (!Array.prototype.forEach) {
 		Array.prototype.forEach = function(fun, thisArg) {
 			"use strict";
@@ -8618,4 +9042,4 @@ var FlateStream = (function() {
 		};
 	}
 
-})(self);
+})(typeof self !== "undefined" && self || typeof window !== "undefined" && window || this);

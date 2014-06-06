@@ -24,7 +24,7 @@
         type          :{r:163,g:185,b:64}, // green: #a3b940
         type_light    :{r:220,g:227,b:179},//#dce3b3 
         size          :{r:36,g:98,b:132}, // blue: 246284
-        size_light    :{r:185,g:195,b:212}, //b9c3d4
+        size_light    :{r:185,g:195,b:212} //b9c3d4
       };
   
   /*
@@ -114,7 +114,7 @@
         return year.isActive();
       });
       return new models.Years(filtered);
-    },            
+    }  
   });
   
   // TYPES CATEGORISATION
@@ -150,7 +150,7 @@
       this.sort_key = key;
       this.sort_dir = direction;
       return this.sort();
-    },            
+    }
   });
   
   // SIZES CATEGORISATION
@@ -181,7 +181,7 @@
   models.Criterion = Backbone.Model.extend({
     initialize: function(){
       this.set('id',this.get('id').replace('_',''));      
-    },
+    }
   });
   models.Criteria = Backbone.Collection.extend({        
     model: models.Criterion,
@@ -196,7 +196,7 @@
         return record.get("criteriongroupid") === group_id;
       });
       return new models.Criteria(filtered);            
-    },            
+    }
   });
   
   // CRITERIAGROUPS
@@ -218,7 +218,7 @@
         }        
       });
       this.count = group_count;
-    },
+    }
   });
   models.CriteriaGroups = Backbone.Collection.extend({model: models.CriteriaGroup}); 
   
@@ -491,7 +491,7 @@
         }
       });
       return results;      
-    },
+    }
     
     
   });
@@ -554,7 +554,7 @@
       "change #entity"  : "selectEntity", 
       "change #type"    : "selectType", 
       "change #size"    : "selectSize", 
-      "change #year"    : "selectYear", 
+      "change #year"    : "selectYear"
     },
     selectAll: function( event ){
       event.preventDefault();
@@ -686,7 +686,7 @@
       this.subtitle = 'Annual Report Review '+this.minYear+' to '+this.maxYear;      
       this.summary = 'The Human Rights Commission reviews and analyses the reporting of good employer obligations \
 by Crown entities and publishes its findings in an annual report "Crown entities and the Good Employer". \
-Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown entities and monitor their progress.'
+Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown entities and monitor their progress.';
     }
   });  
   views.Intro = Backbone.View.extend({
@@ -758,7 +758,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
           modelAverages : new models.Averages({}),
           modelAveragesTime : new models.AveragesTime({
             all: this.get('resultsAll')
-          }),
+          })
         });
         if (typeof this.get('resultsAll')[this.currentYear-1] !== 'undefined') {
           var diff = this.get('resultsAll')[this.currentYear].percentage-this.get('resultsAll')[this.currentYear-1].percentage;
@@ -809,7 +809,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
               entity:entityRecords.getResults(), 
               type_label  : 'Same type: ' + entity.getTypeTitle(), 
               size_label  : 'Same Size: ' + entity.getStaffCatTitle(), 
-              entity_label: 'Entity: ' + entity.get('title'),        
+              entity_label: 'Entity: ' + entity.get('title')        
             })
           });        
 
@@ -833,7 +833,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
             rank_of : ' of ' + this.currentCount + ' entities',
             rank_change : rankChange,
             rank_change_class : rankChangeClass,
-            summary : entity.getSummary(),            
+            summary : entity.getSummary()           
           });          
         }
       }
@@ -852,7 +852,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
           this.set({
             title : 'Category: '+cat.get('title'),
             modelAverages : new models.Averages({
-              all: this.get('resultsAll')[this.currentYear].percentage,
+              all: this.get('resultsAll')[this.currentYear].percentage
             }),
             modelAveragesTime : new models.AveragesTime({
               all: this.get('resultsAll'),
@@ -872,7 +872,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
           this.set({
             title : 'Category: ' + cat.get('title'),            
             modelAverages : new models.Averages({
-              all: this.get('resultsAll')[this.currentYear].percentage,
+              all: this.get('resultsAll')[this.currentYear].percentage
             }),
             modelAveragesTime : new models.AveragesTime({
               all: this.get('resultsAll'),
@@ -891,7 +891,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
           rank : recordsCat.byYear(this.currentYear).length,
           rank_of : ' of ' + this.currentCount + ' entities total',
           rank_change : '',
-          summary : this.currentYearData.get('summaryoverview'),
+          summary : this.currentYearData.get('summaryoverview')
         });
         
         if (typeof resultsCat[this.currentYear-1] !== 'undefined') {
@@ -921,9 +921,9 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
         rank_of : '',
         rank_change : '',
         rank_change_class : '',
-        summary : '',
-      })
-    },
+        summary : ''
+      });
+    }
             
   });
   views.Overview = Backbone.View.extend({
@@ -934,7 +934,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
     },  
     events : {
       "click .accordion-toggle" : "accordionToggle",      
-      "click .load-report" : "loadReport",
+      "click .load-report" : "loadReport"
     },
     loadTitle : function (event) {
       event.preventDefault();
@@ -1092,7 +1092,7 @@ template: _.template('\
         } else if (score_change > 0){
           score_change = '+' + score_change.toString();
           writer.addImage('overview_'+this.model.get('report')+'_up','overview_score_trend');        
-        } else if (score_change == 0){
+        } else if (score_change === 0){
           score_change = score_change.toString();
           writer.addImage('overview_'+this.model.get('report')+'_same','overview_score_trend');
         }
@@ -1137,7 +1137,7 @@ template: _.template('\
       } else {        
         writer.addText(this.model.get('summary'),'overview_summary',{offy:-15});
       }
-    },             
+    }
   });
   views.OverviewGraph = Backbone.View.extend({
     initialize : function (options) {
@@ -1147,7 +1147,7 @@ template: _.template('\
     },
     events : {
       "plotclick .overview-plot" : "plotclick",
-      "plothover .overview-plot" : "plothover",
+      "plothover .overview-plot" : "plothover"
     },            
     attributes: { class: 'overview-graph row' },
     plotOptions: {
@@ -1161,14 +1161,14 @@ template: _.template('\
         font : {
           color: rgbToHex(COLORS.dark),
           size:13
-        },                
+        }             
       },
       xaxis: {
         tickColor:rgbToHex(COLORS.dark),
-        show:false,
+        show:false
       },
       legend: { 
-        show: false,
+        show: false
       },      
       grid: { 
         hoverable: true, 
@@ -1193,9 +1193,9 @@ template: _.template('\
           fill: 1, 
           barWidth: 1, 
           align: 'center',
-          lineWidth: 1,       
-        },
-      },
+          lineWidth: 1     
+        }
+      }
     },
 
     render: function() {
@@ -1258,7 +1258,7 @@ template: _.template('\
           points: {show:true},
           bars: {show:false},
           highlightColor : rgbToHex(COLORS.all)
-        },        
+        }
       ];
 
       // Now, the chart can be drawn ...
@@ -1379,7 +1379,7 @@ template: _.template('\
         eeoref : {},
         review : {},
         wp : {},
-        participation : {},
+        participation : {}
       };
       var sizeRecords,typeRecords;
       var that = this;
@@ -1508,7 +1508,7 @@ template: _.template('\
               report : app.Control.get('report'),
               results : results.geref,
               title : app.Criteria.findWhere({id:'geref'}).get('title').trim(),
-              summary : this.currentYearData.get('summarygeref'),
+              summary : this.currentYearData.get('summarygeref')
             }),
             ge : new models.CriteriaDetails({
               criteria : 'group',
@@ -1517,7 +1517,7 @@ template: _.template('\
               report : app.Control.get('report'),
               results : results.ge,
               title : app.CriteriaGroups.findWhere({id:'GE'}).get('title').trim(),
-              summary : this.currentYearData.get('summarygeelements'),
+              summary : this.currentYearData.get('summarygeelements')
             }),            
             eeoref : new models.CriteriaDetails({
               criteria : 'single',
@@ -1526,7 +1526,7 @@ template: _.template('\
               report : app.Control.get('report'),
               results : results.eeoref,
               title : app.Criteria.findWhere({id:'eeoref'}).get('title').trim(),
-              summary : this.currentYearData.get('summaryeeoref'),
+              summary : this.currentYearData.get('summaryeeoref')
             }),
             review : new models.CriteriaDetails({
               criteria : 'single',
@@ -1535,7 +1535,7 @@ template: _.template('\
               report : app.Control.get('report'),
               results : results.review,
               title : app.Criteria.findWhere({id:'review'}).get('title').trim(),
-              summary : this.currentYearData.get('summaryreview'),
+              summary : this.currentYearData.get('summaryreview')
             }),
             wp : new models.CriteriaDetails({
               criteria : 'group',
@@ -1544,7 +1544,7 @@ template: _.template('\
               report : app.Control.get('report'),
               results : results.wp,
               title : app.CriteriaGroups.findWhere({id:'WP'}).get('title').trim(),
-              summary : this.currentYearData.get('summarywp'),
+              summary : this.currentYearData.get('summarywp')
             }),            
             participation : new models.CriteriaDetails({
               criteria : 'single',
@@ -1553,8 +1553,8 @@ template: _.template('\
               report : app.Control.get('report'),
               results : results.geref,
               title : app.Criteria.findWhere({id:'participation'}).get('title').trim(),
-              summary : this.currentYearData.get('summaryparticipation'),
-            }),
+              summary : this.currentYearData.get('summaryparticipation')
+            })
           }
         });
       
@@ -1565,7 +1565,7 @@ template: _.template('\
       this.set({
         subview_models : {}
       });
-    },
+    }
   });
   views.Details = Backbone.View.extend({
     initialize: function () {
@@ -1619,7 +1619,7 @@ template: _.template('\
       };                 
       return this;      
     },
-template: _.template(''),        
+template: _.template('')       
   }); 
   
   models.CriteriaDetails = Backbone.Model.extend({
@@ -1637,7 +1637,7 @@ template: _.template(''),
         this.set('modelAveragesTime' , 
           new models.AveragesTime({
             all: results.all,
-            legend: false,
+            legend: false
           })
         );        
       }      
@@ -1665,7 +1665,7 @@ template: _.template(''),
             type:results.type ,
             size:results.size,
             entity:results.entity,
-            legend: false,
+            legend: false
           })
         );
       }
@@ -1677,14 +1677,14 @@ template: _.template(''),
         }        
         this.set('modelAverages', 
           new models.Averages({
-            all: results.all[currentYear].percentage,
+            all: results.all[currentYear].percentage
           })
         );
         this.set('modelAveragesTime' , 
           new models.AveragesTime({
             all: results.all,
             type:results.type,
-            legend: false,
+            legend: false
           })
         );
       }
@@ -1696,14 +1696,14 @@ template: _.template(''),
         }        
         this.set('modelAverages', 
           new models.Averages({
-            all: results.all[currentYear].percentage,
+            all: results.all[currentYear].percentage
           })
         );
         this.set('modelAveragesTime' , 
           new models.AveragesTime({
             all: results.all,
             size:results.size,
-            legend: false,
+            legend: false
           })
         );
       }
@@ -1715,7 +1715,7 @@ template: _.template(''),
         this.subviews = {};
     },
     events : {
-      "click .accordion-toggle" : "accordionToggle",      
+      "click .accordion-toggle" : "accordionToggle"   
     },
     accordionToggle: function (event) {
       event.preventDefault();
@@ -1812,7 +1812,7 @@ template: _.template(''),
           writer.addGroupCriteria(element.title,element.results[that.model.attributes.year].percentage,this.model.get('report'),{x:attr.x,y:attr.y+yoffset});
           yoffset += 6.5;
           if (i < elements.length-1){
-            writer.addLine('half_line',{x:attr.x,y:attr.y+yoffset})
+            writer.addLine('half_line',{x:attr.x,y:attr.y+yoffset});
           }
         };
 
@@ -1901,7 +1901,7 @@ template: _.template(''),
 <div class="col-2"><span class="title"><%= size_group_elements[index].title %></span></div>\n\
 <div class="col-3"><span class="score-all"><%= all_group_elements[index].results[year].percentage %>%</span></div>\n\
 </div>\
-'),
+')
   });
   
  /* 
@@ -1918,8 +1918,8 @@ template: _.template(''),
       size_label: 'Same size', 
       all_color : rgbToHex(COLORS.all),
       type_color : rgbToHex(COLORS.type),
-      size_color : rgbToHex(COLORS.size),         
-    },    
+      size_color : rgbToHex(COLORS.size)
+    }
   }); 
   views.Averages = Backbone.View.extend({
     initialize : function (options) {
@@ -1999,7 +1999,7 @@ template: _.template(''),
       entity_label: 'Current entity',
       legend:true,
       axis_label: 'Compliance'
-    },
+    }
   });  
   views.AveragesTimeGraph = Backbone.View.extend({ 
     initialize : function (options) {
@@ -2010,7 +2010,7 @@ template: _.template(''),
     attributes: { class: 'time-graph'},
     events : {      
       "plothover .time-plot" : "plothover",
-      "plotclick .time-plot" : "plotclick",
+      "plotclick .time-plot" : "plotclick"
     }, 
     plotOptions: {
       yaxis: {
@@ -2058,7 +2058,7 @@ template: _.template(''),
         axisMargin:0
       },      
       series: {
-        shadowSize : 0,
+        shadowSize : 0
       }
     },
     render: function() {
@@ -2240,7 +2240,7 @@ template: _.template(''),
         // draw line main
         writer.addLine(item_key + '_legend_line',{color : COLORS.entity,offy:offy}); 
         // add entity_label
-        writer.addText(legend_attr.entity_label,item_key + '_legend',{offx:offx})
+        writer.addText(legend_attr.entity_label,item_key + '_legend',{offx:offx});
         offy += 4;
       }
       if (!$.isEmptyObject(legend_attr.type)){
@@ -2274,7 +2274,7 @@ template: _.template(''),
         writer.addLine(item_key + '_legend_line',{color : COLORS.all,offy:offy,dash:0.33});        
       }
       //add all_label
-      writer.addText(legend_attr.all_label,item_key + '_legend',{offx:offx,offy:offy})
+      writer.addText(legend_attr.all_label,item_key + '_legend',{offx:offx,offy:offy});
       
     },
     template: _.template('\
@@ -2326,7 +2326,7 @@ template: _.template(''),
         builtby : 'a data visualisation by dumpark',
         hrc_url : 'http://www.hrc.co.nz',
         hrc_url_title : 'To explore all good employer reports visit:',
-        hrc_url_anchor : 'www.hrc.co.nz/good-employer',
+        hrc_url_anchor : 'www.hrc.co.nz/good-employer'
       }); 
     },
     update : function(){
@@ -2435,7 +2435,7 @@ template: _.template('\
           app.viewsDetails  = app.viewsDetails   || new views.Details(  { el: $("#details"),  model: app.Details});        
           app.viewsFooter   = app.viewsFooter    || new views.Footer(   { el: $("#footer"),   model: app.Footer});
         }
-    },
+    }
 
   });
   
@@ -2535,7 +2535,7 @@ template: _.template('\
           ge            :{p:2,y:0,x:0},
           wp            :{p:2,y:0,x:95},          
           review        :{p:2,y:130,x:0},
-          participation :{p:2,y:130,x:95},
+          participation :{p:2,y:130,x:95}
         }
       },
       elements  : { 
@@ -2596,7 +2596,7 @@ template: _.template('\
         detail_score           : {style:'bold',size:11,color:COLORS.white},
         //----------------
         footer_image           : {y:222,w:180}
-      },
+      }
       
     },
    
@@ -2748,7 +2748,7 @@ template: _.template('\
           this.addCircle({x:attr.x+6,y:attr.y+9.8,r:6,color:COLORS[report]});
           this.addTick({x:attr.x,y:attr.y+4,color:COLORS.white});          
       } else if (report === 'entity' && score === 0 && criteria === 'single') {
-          this.addCircle({x:attr.x+6,y:attr.y+9.8,r:6,color:COLORS.lighter})
+          this.addCircle({x:attr.x+6,y:attr.y+9.8,r:6,color:COLORS.lighter});
           this.addCross({x:attr.x,y:attr.y+4,color:COLORS.entity});                 
       } else {
         if (score === 0) { 

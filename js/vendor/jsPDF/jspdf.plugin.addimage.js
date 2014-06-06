@@ -172,6 +172,11 @@
 	}
 	, createDataURIFromElement = function(element, format) {
 
+		//if element is an image which uses data url defintion, just return the dataurl
+		if (element.nodeName === 'IMG' && element.hasAttribute('src') && (''+element.getAttribute('src')).indexOf('data:image/') === 0) {
+			return element.getAttribute('src');
+		}
+
 		if(element.nodeName === 'CANVAS') {
 			var canvas = element;
 		} else {
@@ -305,7 +310,7 @@
 	 * Check to see if ArrayBuffer is supported
 	 */
 	jsPDFAPI.supportsArrayBuffer = function() {
-		return typeof ArrayBuffer === 'function';
+		return typeof ArrayBuffer !== 'undefined' && typeof Uint8Array !== 'undefined';
 	};
 
 	/**
@@ -325,9 +330,11 @@
 	jsPDFAPI.isArrayBufferView = function(object) {
 		if(!this.supportsArrayBuffer())
 	        return false;
+		if(typeof Uint32Array === 'undefined')
+			return false;
 		return (object instanceof Int8Array ||
 				object instanceof Uint8Array ||
-				object instanceof Uint8ClampedArray ||
+				(typeof Uint8ClampedArray !== 'undefined' && object instanceof Uint8ClampedArray) ||
 				object instanceof Int16Array ||
 				object instanceof Uint16Array ||
 				object instanceof Int32Array ||
