@@ -499,15 +499,58 @@ a.fullscreen{
 /* -----------------------------------------------------------------------
   FOOTER 
 */
-#footer{
+#footer {
+    margin-bottom: 50px;
+}
+.footer-scene{
   background-image:url('../img/footer-scene.png');
   background-repeat: no-repeat;
   background-position: 0 0;
-  background-size: 685px auto;
-  height: 272px;
+  height: 226px;
   width:685px;
   display:block; 
-  margin-top:29px;  
+  margin-top:29px;
+  padding-top: 122px;
+  position:relative;
+  color:white;
+  font-size:11px
+}
+#footer .col-left,
+#footer .col-right{
+  border-right: 1px solid #FFFFFF;
+  display: block;
+  height: 83px;
+}
+#footer .col-left {
+    padding-left: 10px;
+    padding-right: 10px;
+    width: 310px;
+}
+#footer .col-right {
+    padding-left: 10px;
+    padding-right: 10px;
+    width: 250px;
+}
+.footer-wrap-right,
+.footer-wrap-left{
+   position: absolute;
+   bottom: 0;    
+}
+.footer-hrcurl-title{
+  
+}
+.footer-hrcurl a{
+    font-size:13px;
+    font-weight:bold;
+    color:#fff;
+}
+.footer-wrap-left{
+   font-weight:bold;
+}
+.footer-builtby {
+    font-size: 10px;
+    margin-top: 4px;
+    padding-right:10px;
 }
 /* -----------------------------------------------------------------------
   PLOTS 
@@ -607,8 +650,16 @@ a.fullscreen{
 
   [class^="icon-"], [class*=" icon-"] {
     background-image: url('../img/hrc-sprite@2.png') !important;
-    background-size: 100px 1850px;
+    background-size: 100px 1850px !important;
   }
+  .footer-scene{
+    background-image:url('../img/footer-scene@2.png') !important;
+    background-size: 685px 226px !important;    
+  }
+  .intro .home-link {    
+    background-image:url('../img/hrc-logo@2.png') !important;
+    background-size: 150px 164px !important;    
+  }  
 }
 
 
