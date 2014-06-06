@@ -760,6 +760,11 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
             all: this.get('resultsAll')
           }),
         });
+        if (typeof this.get('resultsAll')[this.currentYear-1] !== 'undefined') {
+          var diff = this.get('resultsAll')[this.currentYear].percentage-this.get('resultsAll')[this.currentYear-1].percentage;
+          this.set('score_change',diff);
+          this.set('score_change_class',diff > 0 ? 'up' : diff < 0 ? 'down' : 'same');
+        }        
         
       } 
       
@@ -1026,7 +1031,7 @@ template: _.template('\
         <div class="score active"><%= score %>%</div>\n\
         <% if (score_change !== "") {%>\n\
           <div class="score-change active"><div class="icon-trend <%= score_change_class %>"></div>\n\
-          <% if (score_change > 0) {%>+<%}%><%= score_change %>\n\
+          <% if (score_change > 0) {%>+<%}%><%= score_change %>%\n\
           </div>\n\
         <%}%>\n\
       </div>\n\
@@ -1082,7 +1087,7 @@ template: _.template('\
       
       if (score_change !== ''){
         if (score_change < 0){
-          score_change = score_change.toString();          
+          score_change = score_change.toString() + '%';          
           writer.addImage('overview_'+this.model.get('report')+'_down','overview_score_trend');
         } else if (score_change > 0){
           score_change = '+' + score_change.toString();
@@ -1105,7 +1110,7 @@ template: _.template('\
 
       var rank_change = this.model.get('rank_change');
       
-      if (rank_change != ''){
+      if (rank_change !== ''){
         if (rank_change < 0){
           rank_change = rank_change.toString();          
           writer.addImage('overview_'+this.model.get('report')+'_down','overview_rank_trend');
@@ -2221,7 +2226,7 @@ template: _.template(''),
       for (var i = 0;i<all_keys.length;i++){
         // tick_offset = axis_width/no_of_ticks
         var offx = (item_graph.w*0.85*(1-2*this.axis_padding)/(all_keys.length-1)*i)+item_graph.w*0.85*this.axis_padding;
-        writer.addText(all_keys[all_keys.length-1-i],item_key+'_xticks',{offx:offx});        
+        writer.addText(all_keys[i],item_key+'_xticks',{offx:offx});        
       }
       var item_graph = writer.item(item_key + '_legend');
       
@@ -2309,20 +2314,53 @@ template: _.template(''),
   });
   
   
-  
+  models.Footer = Backbone.Model.extend({
+    
+    initialize : function(){
+      this.monthNames = [ "January", "February", "March", "April", "May", "June","July", "August", "September", "October", "November", "December" ],
+      this.set({        
+        published: 'Last updated: ' +app.Control.get('updated').getDate()+'. '
+                +this.monthNames[app.Control.get('updated').getMonth()]+' '+app.Control.get('updated').getFullYear(),//+ this.monthNames[app.Control.get('updated').getMonth()],
+        copyright: '&#0169; '+ app.Control.get('updated').getFullYear() + ' New Zealand Human Rights Commission',
+        builtby_url : 'http://dumpark.com',
+        builtby : 'a data visualisation by dumpark',
+        hrc_url : 'http://www.hrc.co.nz',
+        hrc_url_title : 'Explore all good employer reports visit:',
+        hrc_url_anchor : 'www.hrc.co.nz/good-employer',
+      }); 
+    },
+    update : function(){
+      
+    }        
+    
+  });
   views.Footer = Backbone.View.extend({
     initialize: function() {
       this.render();
+      this.listenTo(this.model, 'change', this.render);
     },
     render: function() {
-      this.$el.html(this.template({}));
+      this.$el.html(this.template(this.model.attributes));
     },
     renderPdf: function(writer) {
       writer.addImage('footer','footer_image');
     },
 template: _.template('\
-    <div class="footer-scene">\n\
+<div class="footer-scene">\n\
+  <div class="col-left">\n\
+    <div class="footer-wrap-left">\n\
+    <div class="footer-published"><%= published %></div>\n\
+    <div class="footer-copyright"><%= copyright %></div>\n\
     </div>\n\
+  </div>\n\
+  <div class="col-right">\n\
+    <div class="footer-wrap-right">\n\
+      <div class="footer-hrcurl-title"><%= hrc_url_title %></div>\n\
+      <div class="footer-hrcurl"><a href="<%= hrc_url %>" target="_blank" title="<%= hrc_url_title %>"><%= hrc_url_anchor %></a></div>\n\
+    </div>\n\
+  </div>\n\
+</div>\n\
+<div class="footer-builtby pull-right"><a href="<%= builtby_url %>" target="_blank" title="<%= builtby %>"><%= builtby %></a></div>\n\
     ')              
   });
   
@@ -2367,7 +2405,7 @@ template: _.template('\
         // Parse hash
         var filter = route.split('-');   
         // create control view
-        app.Control    = app.Control || new models.Control();
+        
         //default to all entities
         if ($.inArray(filter[0],['all','entity','type','size']) === -1 || filter[1] === 'none' || filter[1] === '') {
           this.navigate(year + '/report/all-entities', {trigger: true});
@@ -2384,17 +2422,18 @@ template: _.template('\
           // create other models if necessary
           app.Overview      = app.Overview       || new models.Overview();
           app.Details       = app.Details        || new models.Details();
+          app.Footer        = app.Footer         || new models.Footer();
           
           // update models >>> trigger view render
           app.Overview.update();
           app.Details.update();
 
           // create views if necessary
-          app.viewsIntro    = app.viewsIntro     || new views.Intro(    { el: $("#intro"),    model: new models.Intro() });
-          app.viewsTools    = app.viewsTools     || new views.Tools(    { el: $("#tools"),    model: app.Control });                
+          app.viewsIntro    = app.viewsIntro     || new views.Intro(    { el: $("#intro"),    model: new models.Intro()});
+          app.viewsTools    = app.viewsTools     || new views.Tools(    { el: $("#tools"),    model: app.Control});                
           app.viewsOverview = app.viewsOverview  || new views.Overview( { el: $("#overview"), model: app.Overview});
           app.viewsDetails  = app.viewsDetails   || new views.Details(  { el: $("#details"),  model: app.Details});        
-          app.viewsFooter   = app.viewsFooter    || new views.Footer(   { el: $("#footer"),   model: app.Control});
+          app.viewsFooter   = app.viewsFooter    || new views.Footer(   { el: $("#footer"),   model: app.Footer});
         }
     },
 
@@ -2410,6 +2449,7 @@ template: _.template('\
    * @returns {undefined}
    */  
   function data_init (data){
+    app.Control         = new models.Control({updated:new Date(data.Years.updated)});
     // 1. init years
     app.Years           = new models.Years(data.Years.elements);    
     // 2. init types
