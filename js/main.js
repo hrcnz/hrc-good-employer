@@ -12,19 +12,19 @@
       routers  = {},
       app      = {},
       COLORS = {               
-        white         :{r:255,g:255,b:255},
-        dark          :{r:97,g:97,b:97},//#616161
-        medium         :{r:160,g:160,b:160},//#a0a0a0
-        light         :{r:210,g:210,b:210},//#d2d2d2
-        lighter       :{r:237,g:237,b:237},//#ededed
-        all           :{r:115,g:28,b:31}, // red: #731c1f
-        all_light     :{r:210,g:164,b:166},//        
-        entity        :{r:36,g:173,b:162}, // turquoise: #24ada2
-        entity_light  :{r:203,g:227,b:225},// #cbe3e1       
-        type          :{r:163,g:185,b:64}, // green: #a3b940
-        type_light    :{r:220,g:227,b:179},//#dce3b3 
-        size          :{r:36,g:98,b:132}, // blue: 246284
-        size_light    :{r:185,g:195,b:212} //b9c3d4
+        'white'         :{'r':255,'g':255,'b':255},
+        'dark'          :{'r':97, 'g':97, 'b':97},//#616161
+        'medium'        :{'r':160,'g':160,'b':160},//#a0a0a0
+        'light'         :{'r':210,'g':210,'b':210},//#d2d2d2
+        'lighter'       :{'r':237,'g':237,'b':237},//#ededed
+        'all'           :{'r':115,'g':28, 'b':31}, // red: #731c1f
+        'all_light'     :{'r':210,'g':164,'b':166},//        
+        'entity'        :{'r':36, 'g':173,'b':162}, // turquoise: #24ada2
+        'entity_light'  :{'r':203,'g':227,'b':225},// #cbe3e1       
+        'type'          :{'r':163,'g':185,'b':64}, // green: #a3b940
+        'type_light'    :{'r':220,'g':227,'b':179},//#dce3b3 
+        'size'          :{'r':36, 'g':98, 'b':132}, // blue: 246284
+        'size_light'    :{'r':185,'g':195,'b':212} //b9c3d4
       };
   
   /*
