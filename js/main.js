@@ -2519,7 +2519,7 @@ template: _.template('\
   models.DocWriter = Backbone.Model.extend({
     initialize : function(){
       this.doc = new jsPDF({lineHeight:this.defaults.lineHeight});           
-      this.doc.setFontSize(this.defaults.elements.default.size);
+      this.doc.setFontSize(this.defaults.elements['default'].size);
     },     
     defaults : {
       lineHeight:1.4,
