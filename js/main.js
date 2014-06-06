@@ -1148,7 +1148,7 @@ template: _.template('\
       "plotclick .overview-plot" : "plotclick",
       "plothover .overview-plot" : "plothover"
     },            
-    attributes: { class: 'overview-graph row' },
+    attributes: { 'class': 'overview-graph row' },
     plotOptions: {
       yaxis: {
         tickColor:rgbToHex(COLORS.dark),
@@ -2480,10 +2480,9 @@ template: _.template('\
    * called when all spreadsheet data is stored 
    *    
    * @param {type} data
-   * @param {type} tabletop
    * @returns {undefined}
    */
-  function data_loaded(data, tabletop){
+  function data_loaded(data){
     console.log('data loaded');
     // initialise data
     data_init(data);
@@ -2497,7 +2496,7 @@ template: _.template('\
     // Start the application
   $(function() {
     //Initialise tabletop instance with data, calls data_loaded when all data read
-    var tabletop = Tabletop.init({ key: doc_url, parseNumbers : true, callback: data_loaded });
+    Tabletop.init({ key: doc_url, parseNumbers : true, callback: data_loaded });
   });  
 
   
