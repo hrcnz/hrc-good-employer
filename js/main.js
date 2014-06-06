@@ -620,8 +620,10 @@ $(function() {
     <%= year.get("year") %></option>\
   <%})%>\
 </select></div>\
+<!--[if lt IE 9]>\n\
 <div class="row"><a href="#" id="renderPdf" class="pull-right">Download report as pdf <span class="icon-download"></span></a></div>\
-    '),
+<![endif]-->\n\
+'),
     /* FULLSCREEN   ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
     initFullscreen : function () {
       // if embedded offer fullacreen
@@ -2803,11 +2805,13 @@ template: _.template('\
   function rgbToHex(rgb) {
       return "#" + componentToHex(rgb.r) + componentToHex(rgb.g) + componentToHex(rgb.b);
   }  
+//ie8
 if(typeof String.prototype.trim !== 'function') {
   String.prototype.trim = function() {
     return this.replace(/^\s+|\s+$/g, ''); 
   };
 }
+//ie8
 if (!Object.keys) {
   Object.keys = (function () {
     'use strict';
@@ -2848,10 +2852,6 @@ if (!Object.keys) {
     };
   }());
 }
-if(!Array.isArray) {
-  Array.isArray = function(arg) {
-    return Object.prototype.toString.call(arg) === '[object Array]';
-  };
-}
+
 });
 
