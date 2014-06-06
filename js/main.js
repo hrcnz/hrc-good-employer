@@ -3,14 +3,14 @@ $(function() {
   // globals   
   //
   // the pseudo database: all data kept in google spreadsheet   
-  var doc_key  = '0AswFq_8FWOlndERBTzlFT1lCY04zWG9UcEQ1VE92eFE',
-      doc_url  = 'https://docs.google.com/spreadsheet/pub?hl=en_US&hl=en_US&key='+doc_key+'&output=html',
-      URL      = 'http://tmfrnz.github.io/hrc-good-employer',
-      models   = {},
-      views    = {},
-      routers  = {},
-      app      = {},
-      COLORS = {               
+  var doc_key  = '0AswFq_8FWOlndERBTzlFT1lCY04zWG9UcEQ1VE92eFE';
+  var doc_url  = 'https://docs.google.com/spreadsheet/pub?hl=en_US&hl=en_US&key='+doc_key+'&output=html';
+  var URL      = 'http://tmfrnz.github.io/hrc-good-employer';
+  var models   = {};
+  var views    = {};
+  var routers  = {};
+  var app      = {};
+  var COLORS = {               
         'white'         :{'r':255,'g':255,'b':255},
         'dark'          :{'r':97, 'g':97, 'b':97},//#616161
         'medium'        :{'r':160,'g':160,'b':160},//#a0a0a0
@@ -25,7 +25,7 @@ $(function() {
         'size'          :{'r':36, 'g':98, 'b':132}, // blue: 246284
         'size_light'    :{'r':185,'g':195,'b':212} //b9c3d4
       };
-  
+
   /*
    * DATA models & collections: representing the data loaded from spreadsheet
    */
@@ -2487,11 +2487,11 @@ template: _.template('\
     console.log('data loaded');
     // initialise data
     data_init(data);
+    showOnLoad('onData');        
     // start application
     app.App = new routers.App();
     Backbone.history.start();
     
-    showOnLoad('onData');    
   }
   
     // Start the application
