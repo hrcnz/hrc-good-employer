@@ -2519,7 +2519,7 @@ template: _.template('\
   models.DocWriter = Backbone.Model.extend({
     initialize : function(){
       this.doc = new jsPDF({lineHeight:this.defaults.lineHeight});           
-      this.doc.setFontSize(this.defaults.elements['default'].size);
+      this.doc.setFontSize(this.defaults.elements.def.size);
     },     
     defaults : {
       lineHeight:1.4,
@@ -2537,7 +2537,7 @@ template: _.template('\
         }
       },
       elements  : { 
-        default               : {y:15,x:15,w:180,h:0,size:8,style:'normal',
+        def               : {y:15,x:15,w:180,h:0,size:8,style:'normal',
                                   margin:{top:0,bottom:2,right:0,left:0},color:COLORS.dark,
                                   offy:0,offx:0},        
         half                  : {y:15,x:15,w:85,h:0,size:8,style:'normal',margin:{top:0,bottom:2,right:0,left:0},color:COLORS.dark},        
@@ -2602,7 +2602,7 @@ template: _.template('\
       attr = typeof attr !== 'undefined' ? attr : {};
       
       var item = $.extend({},this.defaults.elements[key]);
-      var def = $.extend({},this.defaults.elements.default);
+      var def = $.extend({},this.defaults.elements.def);
       item = $.extend(item,attr);      
       return $.extend(def,item);
         
@@ -2619,7 +2619,7 @@ template: _.template('\
     },
     addText : function(s,item_key,item_attr){
       if (s === "") return 0;
-      item_key = typeof item_key !== 'undefined' ? item_key : 'default';
+      item_key = typeof item_key !== 'undefined' ? item_key : 'def';
       var item = this.item(item_key,item_attr);
       var yalign = (item.yalign !== 'undefined') ? item.yalign : 'top';
       //set style
@@ -2782,9 +2782,9 @@ template: _.template('\
         } else if (score > 99 ) {
           score_offset = 1.4;
         }        
-        this.addText(score + '%','default',{x:attr.x+score_offset,y:attr.y+1.5,style:'bold'});
+        this.addText(score + '%','def',{x:attr.x+score_offset,y:attr.y+1.5,style:'bold'});
       }
-      this.addText(text,'default',{x:attr.x+10,y:attr.y+1.5});
+      this.addText(text,'def',{x:attr.x+10,y:attr.y+1.5});
     },
     addPage : function (){
       this.doc.addPage();
