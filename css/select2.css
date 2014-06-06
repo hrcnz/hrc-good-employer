@@ -567,12 +567,11 @@ html[dir="rtl"] .select2-search-choice-close {
     .select2-search-choice-close,
     .select2-container .select2-choice abbr,
     .select2-container .select2-choice .select2-arrow b {
-        background-image: url('../img/hrc-sprite@2.png')  !important;
-        background-repeat: no-repeat !important;
-        background-size: 60px 40px !important;
+      background-image: url('../img/hrc-sprite@2.png') !important;
+      background-size: 100px 1850px !important;
     }
 
-    .select2-search input {
+/*    .select2-search input {
         background-position: 100% -21px !important;
-    }
+    }*/
 }
