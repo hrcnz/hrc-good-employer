@@ -2325,7 +2325,7 @@ template: _.template(''),
         builtby_url : 'http://dumpark.com',
         builtby : 'a data visualisation by dumpark',
         hrc_url : 'http://www.hrc.co.nz',
-        hrc_url_title : 'Explore all good employer reports visit:',
+        hrc_url_title : 'To explore all good employer reports visit:',
         hrc_url_anchor : 'www.hrc.co.nz/good-employer',
       }); 
     },
