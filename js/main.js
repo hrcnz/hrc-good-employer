@@ -1,5 +1,4 @@
-
-//$(function() {
+$(function() {
 
   // globals   
   //
@@ -2800,12 +2799,12 @@ template: _.template('\
   function componentToHex(c) {
     var hex = c.toString(16);
     return hex.length === 1 ? "0" + hex : hex;
-}
+  }
 
   function rgbToHex(rgb) {
       return "#" + componentToHex(rgb.r) + componentToHex(rgb.g) + componentToHex(rgb.b);
   }  
 
 
- //});
+});
 
