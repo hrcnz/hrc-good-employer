@@ -2803,7 +2803,11 @@ template: _.template('\
   function rgbToHex(rgb) {
       return "#" + componentToHex(rgb.r) + componentToHex(rgb.g) + componentToHex(rgb.b);
   }  
-
+if(typeof String.prototype.trim !== 'function') {
+  String.prototype.trim = function() {
+    return this.replace(/^\s+|\s+$/g, ''); 
+  };
+}
 
 });
 
