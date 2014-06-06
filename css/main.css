@@ -607,7 +607,7 @@ a.fullscreen{
 
   [class^="icon-"], [class*=" icon-"] {
     background-image: url('../img/hrc-sprite@2.png') !important;
-    /*background-size: 201px 1850px;*/
+    background-size: 100px 1850px;
   }
 }
 
