@@ -114,17 +114,13 @@ h1{
   font-weight:bold;
   margin-bottom:13px;  
 }
+
 h2 {
-  font-size:25px;
-  font-weight:normal;
-  line-height:28px;
-}
-h3 {
     font-size: 14px;
     font-weight: bold;
     line-height: 20px;
 }
-h4 {
+h3 {
     font-size: 14px;
     font-weight: normal;
     line-height: 18px;
@@ -193,7 +189,7 @@ h4 {
   margin-top:0;
   margin-bottom:10px;
 }
-.intro h3 {
+.intro h2 {
     margin-bottom: 15px;
     margin-top: 5px;
 }
@@ -210,7 +206,7 @@ h4 {
 #tools {
   margin-bottom:35px;
 }
-#tools h4 {
+#tools h3 {
   font-size: 16px;
   margin-bottom: 13px;
   margin-top: 22px;    
@@ -281,8 +277,11 @@ a.fullscreen{
 #overview-title h2{
   margin-top:0;
   margin-bottom:0;
+  font-size:25px;
+  font-weight:normal;
+  line-height:28px;
 }
-#overview-title h4{
+#overview-title h3{
   margin-top:6px;
   margin-bottom:0;
 }
@@ -296,9 +295,10 @@ a.fullscreen{
   padding-right:0;
   padding-left:22px;
 }
-#overview-title h2.year {
+#overview-title .year {
   font-size: 28px;
   font-weight:bold;
+  line-height: 28px;
 }
 #overview-cat .label {
     display: inline-block;

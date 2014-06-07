@@ -532,7 +532,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
 <div class="row">\n\
 <div class="col-left">\n\
 <h1 id="intro-title"><%= title %></h1>\n\
-<h3><%= subtitle %></h3>\n\
+<h2><%= subtitle %></h2>\n\
 <div class="summary"><p><%= summary %></p></div>\n\
 </div>\n\
 <div class="col-right">\n\
@@ -631,7 +631,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
     },
     template: _.template('\
 <div class="row">\n\
-<h4 id="tools-title" class="medium pull-left">Select a report for a specific entity or a group of entities</h4>\n\
+<h3 id="tools-title" class="medium pull-left">Select a report for a specific entity or a group of entities</h3>\n\
 <a aria-hidden="true" role="presentation" href="#" class="fullscreen hidden-fullscreen hidden-standalone pull-right" data-toggle="fullscreen">Enter fullscreen <span class="icon-fullscreen-open"></span></a>\
 <a aria-hidden="true" role="presentation" href="#" class="fullscreen visible-fullscreen hidden-standalone pull-right" data-toggle="fullscreen-close">Exit fullscreen <span class="icon-fullscreen-close"></span></a>\n\
 </div>\n\
@@ -1016,11 +1016,11 @@ template: _.template('\
   <div class="col-left">\n\
     <h2 id="overview-the-title" aria-label="Current report: Name of selected entity or entity group" ><%= title %></h2>\n\
     <% if (subtitle !== "") { %>\n\
-    <h4 aria-label="Additional information" class="medium"><%= subtitle %></h4>\n\
+    <h3 aria-label="Additional information" class="medium"><%= subtitle %></h3>\n\
     <% } %>\n\
 </div>\n\
 <div class="col-right">\n\
-<h2 aria-label="Year for current report" class="year active"><%= year %></h2>\n\
+<div aria-label="Year for current report" class="year active"><%= year %></div>\n\
 </div>\n\
 </div><!-- #overview-title -->\n\
 <div id="overview-cat" class="row">\n\
