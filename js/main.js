@@ -631,9 +631,11 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
     },
     template: _.template('\
 <div class="row">\n\
-<h3 id="tools-title" class="medium pull-left">Select a report for a specific entity or a group of entities</h3>\n\
-<a aria-hidden="true" role="presentation" href="#" class="fullscreen hidden-fullscreen hidden-standalone pull-right" data-toggle="fullscreen">Enter fullscreen <span class="icon-fullscreen-open"></span></a>\
-<a aria-hidden="true" role="presentation" href="#" class="fullscreen visible-fullscreen hidden-standalone pull-right" data-toggle="fullscreen-close">Exit fullscreen <span class="icon-fullscreen-close"></span></a>\n\
+  <h3 id="tools-title" class="medium pull-left">Select a report for a specific entity or a group of entities</h3>\n\
+  <div aria-hidden="true" role="presentation">\n\
+    <a href="#" class="fullscreen hidden-fullscreen hidden-standalone pull-right" data-toggle="fullscreen">Enter fullscreen <span class="icon-fullscreen-open"></span></a>\
+    <a href="#" class="fullscreen visible-fullscreen hidden-standalone pull-right" data-toggle="fullscreen-close">Exit fullscreen <span class="icon-fullscreen-close"></span></a>\n\
+  </div>\n\
 </div>\n\
 <div class="row" id="report-select"><button role="button" id="all" class="btn <%= allActive %>" aria-pressed="<%if (allActive === "active") { %>true<% } else { %>false<% } %>" >All entities</button>\
 <select id="entity" class="select2" style="width:<%=select_width%>px;">\
@@ -1240,7 +1242,7 @@ template: _.template('\
       
       // accessibility table
       var table = this.$('.overview-plot-table table tbody');
-      table.append('<tr><th>Entity</th><th>Compliance in %</th></tr>');
+      table.append('<tr><th scope="col">Entity</th><th scope="col">Compliance in %</th></tr>');
       for ( var i=0;i<this.collection.length;i++ ) {
         var model = this.collection.models[i];        
         if (model.getScore(true) === 0 ){    
@@ -1370,17 +1372,17 @@ template: _.template('\
 
    },            
     template: _.template('\
-<div class="plot-wrapper" role>\n\
+<div class="plot-wrapper">\n\
 <div aria-hidden="true" role="presentation" class="yaxis-label"><%= axis_label %></div>\n\
 <div aria-label="Compliance of all entities - Chart. Details in the following table" role="img" class="overview-plot"></div>\n\
-<details class="overview-plot-table sr-only">\n\
+<div class="overview-plot-table sr-only">\n\
 <summary>Compliance of all entities - Table</summary>\n\
 <table>\n\
 <caption>Compliance of all entities, active entities highlighted</caption>\n\
 <tbody>\n\
 </tbody>\n\
 </table>\n\
-</details>\n\
+</div>\n\
 </div>\
 ')           
   });
@@ -1669,7 +1671,8 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
         this.set('modelAveragesTime' , 
           new models.AveragesTime({
             all: results.all,
-            legend: false
+            legend: false,
+            criterion: this.get('title')            
           })
         );        
       }      
@@ -1697,7 +1700,8 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
             type:results.type ,
             size:results.size,
             entity:results.entity,
-            legend: false
+            legend: false,
+            criterion: this.get('title')            
           })
         );
       }
@@ -1716,7 +1720,8 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
           new models.AveragesTime({
             all: results.all,
             type:results.type,
-            legend: false
+            legend: false,
+            criterion: this.get('title')            
           })
         );
       }
@@ -1735,7 +1740,8 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
           new models.AveragesTime({
             all: results.all,
             size:results.size,
-            legend: false
+            legend: false,
+            criterion: this.get('title')            
           })
         );
       }
@@ -2033,6 +2039,7 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
   models.AveragesTime = Backbone.Model.extend({
     defaults: {
       title : 'Compliance over time',
+      criterion : 'Overall compliance',
       all   : {}, 
       type  : {}, 
       size  : {},
@@ -2149,7 +2156,7 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
 
       // accessibility table
       var table = this.$('.time-plot-table table tbody');
-      table.append('<tr><td></td><th>Year></th><th>Compliance in %</th></tr>');
+      table.append('<tr><td></td><th scope="col">Year></th><th scope="col">Compliance in %</th></tr>');
       
       // axis padding in %      
       var all_keys = Object.keys(this.model.get('all'));
@@ -2161,7 +2168,7 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
       //all entities
       _.each(this.model.get('all'), function(year) { 
         data.push([year.year,year.percentage]);
-        table.append('<tr><th>'+that.model.get("all_label")+'</th><td>'+year.year+'</td><td>'+year.percentage+'%</td></tr>');        
+        table.append('<tr><td>'+that.model.get("all_label")+'</td><td>'+year.year+'</td><td>'+year.percentage+'%</td></tr>');        
       });
       dataset.push(
         this.lineOptions('all',{
@@ -2174,7 +2181,7 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
       if (!$.isEmptyObject(this.model.get('type'))){
         _.each(this.model.get('type'), function(year) { 
           data.push([year.year,year.percentage]);
-          table.append('<tr><th>'+that.model.get("type_label")+'</th><td>'+year.year+'</td><td>'+year.percentage+'%</td></tr>');                  
+          table.append('<tr><td>'+that.model.get("type_label")+'</td><td>'+year.year+'</td><td>'+year.percentage+'%</td></tr>');                  
         });
         dataset.push(this.lineOptions('type',{
           data  : data
@@ -2187,7 +2194,7 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
       if (!$.isEmptyObject(this.model.get('size'))){
         _.each(this.model.get('size'), function(year) { 
           data.push([year.year,year.percentage]);
-          table.append('<tr><th>'+that.model.get("size_label")+'</th><td>'+year.year+'</td><td>'+year.percentage+'%</td></tr>');                            
+          table.append('<tr><td>'+that.model.get("size_label")+'</td><td>'+year.year+'</td><td>'+year.percentage+'%</td></tr>');                            
         });
         dataset.push(
         this.lineOptions('size',{
@@ -2200,7 +2207,7 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
       if (!$.isEmptyObject(this.model.get('entity'))){
         _.each(this.model.get('entity'), function(year) { 
           data.push([year.year,year.percentage]);
-          table.append('<tr><th>'+that.model.get("entity_label")+'</th><td>'+year.year+'</td><td>'+year.percentage+'%</td></tr>');                            
+          table.append('<tr><td>'+that.model.get("entity_label")+'</td><td>'+year.year+'</td><td>'+year.percentage+'%</td></tr>');                            
         });
         dataset.push(
           this.lineOptions('entity',{
@@ -2335,16 +2342,16 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
 <div class="plot-wrapper plot-wrapper-<%= cid %>">\n\
 <div class="averages-title"><%= title %></div>\n\
 <div aria-hidden="true" role="presentation" class="yaxis-label"><%= axis_label %></div>\n\
-<div class="time-plot" aria-label="<%= title %> - Chart. Details in the following table" role="img" ></div>\n\
+<div class="time-plot" aria-label="<%= title %> for <%= criterion %> - Chart. Details in the following table" role="img" ></div>\n\
 <div aria-hidden="true" role="presentation" class="legend"></div>\n\
-<details class="time-plot-table sr-only">\n\
-<summary><%= title %> - Table</summary>\n\
+<div class="time-plot-table sr-only">\n\
+<summary><%= title %> for <%= criterion %> - Table</summary>\n\
 <table>\n\
-<caption><%= title %></caption>\n\
+<caption><%= title %> for <%= criterion %> </caption>\n\
 <tbody>\n\
 </tbody>\n\
 </table>\n\
-</details>\n\
+</div>\n\
 </div>\
 '),
     template_legend: _.template('\
