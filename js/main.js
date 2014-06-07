@@ -1882,7 +1882,7 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
     <div class="accordion">\n\
       <div class="accordion-top row" role="tab" aria-expanded="false" aria-selected="false">\n\
         <a href="#" aria-hidden="true" role="button" class="accordion-open accordion-toggle icon-accordion-toggle" title="Show more" aria-label="Show more"></a>\n\
-        <a href="#" aria-hidden="false" role="button" class="accordion-close accordion-toggle icon-accordion-toggle" title="Show less" aria-label="Show less"></a>\n\\n\
+        <a href="#" aria-hidden="false" role="button" class="accordion-close accordion-toggle icon-accordion-toggle" title="Show less" aria-label="Show less"></a>\n\
         <div class="col-left">\n\
           <div class="title-score-wrap">\n\
           <div class="title-score" >\n\
@@ -1898,7 +1898,7 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
               <% } %>\n\
             <% } %>\n\
           </div>\n\
-          <div class="title"><a href="#" class="accordion-toggle" title="Show or hide details">\n\<%= title %></a></div>\n\
+          <h2 class="title"><a href="#" class="accordion-toggle" title="Show or hide details"><%= title %></a></h2>\n\
         </div><!-- .title-score-wrap -->\n\
         </div><!-- .col-left -->\n\
         <div class="col-right">\n\
