@@ -1884,12 +1884,12 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
         <a href="#" aria-hidden="true" role="button" class="accordion-open accordion-toggle icon-accordion-toggle" title="Show more" aria-label="Show more"></a>\n\
         <a href="#" aria-hidden="false" role="button" class="accordion-close accordion-toggle icon-accordion-toggle" title="Show less" aria-label="Show less"></a>\n\
         <div class="col-left">\n\
-          <div class="title-score-wrap">\n\
+          <h2 class="title-score-wrap">\n\
           <div class="title-score" >\n\
             <% if (report === "entity" && score === 100 && criteria === "single") { %>\n\
-              <span class="icon-score-pass" aria-label="Entity compliant for criteria"></span>\n\
+              <span class="icon-score-pass" aria-label="Entity compliant for criteria"></span><span class="the-score active sr-only"><%= score %>%</span>\n\
             <% } else if (report === "entity" && score === 0 && criteria === "single") { %>\n\
-              <span class="icon-score-fail" aria-label="Entity not compliant for criteria"></span>\n\
+              <span class="icon-score-fail" aria-label="Entity not compliant for criteria"></span><span class="the-score active sr-only"><%= score %>%</span>\n\
             <% } else { %>\n\
               <% if (score === 0) { %> \n\
                 <span class="icon-score-inverse" aria-label="Compliance for criteria"></span><span class="the-score active"><%= score %>%</span>\n\
@@ -1898,8 +1898,8 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
               <% } %>\n\
             <% } %>\n\
           </div>\n\
-          <h2 class="title"><a href="#" class="accordion-toggle" title="Show or hide details"><%= title %></a></h2>\n\
-        </div><!-- .title-score-wrap -->\n\
+          <div class="title"><a href="#" class="accordion-toggle" title="Show or hide details"><%= title %></a></div>\n\
+        </h2><!-- .title-score-wrap -->\n\
         </div><!-- .col-left -->\n\
         <div class="col-right">\n\
           <div class="averages-panel"></div>\n\
