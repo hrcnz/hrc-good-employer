@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
-<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
-<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9" lang="en"> <![endif]-->
 <!--[if gt IE 8]><!-->
-<html class="no-js">
+<html class="no-js" lang="en">
 <!--<![endif]-->
   <head>
     <meta charset="utf-8">
@@ -32,31 +32,34 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
   </head>
   <body class="standalone">
     <!--[if lte IE 7]>
-        <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+        <p class="browsehappy">You are using an <strong>outdated</strong> browser that is unfortunately not fully supported by the application. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
     <![endif]-->
-    
-    <div id="report" class="container">
-      <div id="loading" class="loading onData">
+    <div id="loading" class="container loading onData" role="presentation" aria-hidden="true">
         <div class="intro">
-        <div class="row">
-          <div class="col-left">
-            <h1>Crown Entities and the Good Employer</h1>
-            <h3>Annual Report Review</h3>
-            <div class="summary"><p>The Human Rights Commission reviews and analyses the reporting of good employer obligations by Crown entities and publishes its findings in an annual report "Crown entities and the Good Employer". Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown entities and monitor their progress.</p></div>
-          </div>
-          <div class="col-right">
-            <a class="home-link" href="#" title="Crown Entities and the Good Employer: Home"></a>
-          </div>
-        </div>      
-      </div>
+          <div class="row">
+            <div class="col-left">
+              <h1>Crown Entities and the Good Employer</h1>
+              <h3>Annual Report Review</h3>
+              <div class="summary"><p>The Human Rights Commission reviews and analyses the reporting of good employer obligations by Crown entities and publishes its findings in an annual report "Crown entities and the Good Employer". Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown entities and monitor their progress.</p></div>
+            </div>
+            <div class="col-right">
+              <a class="home-link" href="#" title="Crown Entities and the Good Employer: Home"></a>
+            </div>
+          </div>      
+        </div>
         <div>Loading...</div>
-        <img alt="loading" src="img/loading.gif">
-      </div>      
-      <div id="intro" class="intro waiting onData"></div>  
-      <div id="tools" class="waiting onData"></div>  
-      <div id="overview" class="waiting onData"></div>
-      <div id="details" class="waiting onData"></div>    
-      <div id="footer" class="waiting onData"></div>        
+        <img alt="loading application" src="img/loading.gif">
+    </div>    
+    
+    <div id="report" class="container" role="application" aria-busy="true">       
+      <header id="intro" class="intro waiting onData" role="banner" aria-live="polite" aria-labelledby="intro-title"></header>  
+      <nav id="tools" class="waiting onData" role="navigation" aria-live="polite" aria-atomic="true" aria-label="Main navigation: Use the following buttons and select controls to select a report"></nav>  
+      <div id="report-main" role="main" aria-live="polite" aria-atomic="true">
+      <div id="report-main" role="main" aria-live="polite" aria-atomic="true">
+        <section role="region" id="overview" class="waiting onData" aria-label="The overview section for selected report"></section>
+        <section role="region" id="details" class="waiting onData" aria-label="The details section for selected report"></section>    
+      </div>
+      <footer id="footer" class="waiting onData" role="contentinfo" aria-label="Further information and external links"></footer>   
     </div>
     
 

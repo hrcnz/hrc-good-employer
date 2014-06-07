@@ -48,7 +48,13 @@ $(function() {
     },
     accordionCloseAll : function (){
       $('.accordion').removeClass('open');
-      $('.accordion-bottom').slideUp();
+      $('.accordion-bottom').slideUp();      
+      $('.accordion-top').attr('aria-expanded',false);
+      $('.accordion-top').attr('aria-selected',false);
+      $('.accordion-bottom').attr('aria-expanded',false);
+      $('.accordion-bottom').attr('aria-hidden',true);
+      $('a.accordion-open').attr('aria-hidden',false);
+      $('a.accordion-false').attr('aria-hidden',true);        
     }
   });
   // YEARS
@@ -501,6 +507,50 @@ $(function() {
    */    
   
   /*
+   * views.Intro
+   */
+  models.Intro = Backbone.Model.extend({
+    initialize : function(){
+      this.minYear = app.Years.getFirst();
+      this.maxYear = app.Years.getLast();
+      this.title = 'Crown Entities and the Good Employer';
+      this.subtitle = 'Annual Report Review '+this.minYear+' to '+this.maxYear;      
+      this.summary = 'The Human Rights Commission reviews and analyses the reporting of good employer obligations \
+by Crown entities and publishes its findings in an annual report "Crown entities and the Good Employer". \
+Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown entities and monitor their progress.';
+    }
+  });  
+  views.Intro = Backbone.View.extend({
+    initialize: function () {
+        this.render();
+    },
+    render: function(){
+      this.$el.html(this.template(this.model));
+      return this;      
+    },
+    template: _.template('\
+<div class="row">\n\
+<div class="col-left">\n\
+<h1 id="intro-title"><%= title %></h1>\n\
+<h3><%= subtitle %></h3>\n\
+<div class="summary"><p><%= summary %></p></div>\n\
+</div>\n\
+<div class="col-right">\n\
+<a class="home-link" href="#" title="Reset Application: Crown Entities and the Good Employer"></a>\n\
+</div>\n\
+</div>'),
+    renderPdf: function (writer){
+      console.log('intro.renderpdf');
+
+      writer.addText(this.model.title,'intro_title');
+      writer.addText(this.model.subtitle,'intro_subtitle');     
+      writer.addText(this.model.summary,'intro_summary');     
+      writer.addLine('intro_line');
+      writer.addImage('intro_logo','intro_logo');
+       
+    }
+  });
+  /*
    * views.Tools
    */ 
   views.Tools = Backbone.View.extend({
@@ -581,11 +631,11 @@ $(function() {
     },
     template: _.template('\
 <div class="row">\n\
-<h4 class="medium pull-left">Select Report</h4>\n\
-<a href="#" class="fullscreen hidden-fullscreen hidden-standalone pull-right" data-toggle="fullscreen">Enter fullscreen <span class="icon-fullscreen-open"></span></a>\
-<a href="#" class="fullscreen visible-fullscreen hidden-standalone pull-right" data-toggle="fullscreen-close">Exit fullscreen <span class="icon-fullscreen-close"></span></a>\n\
+<h4 id="tools-title" class="medium pull-left">Select a report for a specific entity or a group of entities</h4>\n\
+<a aria-hidden="true" role="presentation" href="#" class="fullscreen hidden-fullscreen hidden-standalone pull-right" data-toggle="fullscreen">Enter fullscreen <span class="icon-fullscreen-open"></span></a>\
+<a aria-hidden="true" role="presentation" href="#" class="fullscreen visible-fullscreen hidden-standalone pull-right" data-toggle="fullscreen-close">Exit fullscreen <span class="icon-fullscreen-close"></span></a>\n\
 </div>\n\
-<div class="row" id="report-select"><button id="all" class="btn <%= allActive %>">All entities</button>\
+<div class="row" id="report-select"><button role="button" id="all" class="btn <%= allActive %>" aria-pressed="<%if (allActive === "active") { %>true<% } else { %>false<% } %>" >All entities</button>\
 <select id="entity" class="select2" style="width:<%=select_width%>px;">\
   <option></option>\
   <% var group_label = "A"; %>\n\
@@ -620,9 +670,9 @@ $(function() {
     <%= year.get("year") %></option>\
   <%})%>\
 </select></div>\
-<!--[if lt IE 9]>\n\
-<div class="row"><a href="#" id="renderPdf" class="pull-right">Download report as pdf <span class="icon-download"></span></a></div>\
-<![endif]-->\n\
+<!--[if gt IE 8]><!-->\n\
+<div aria-labelledby="renderPdf" class="row"><a title="Download a pdf-version of the current report" href="#" id="renderPdf" class="pull-right">Download a pdf-version of selected report <span class="icon-download"></span></a></div>\
+<!--<![endif]-->\n\
 '),
     /* FULLSCREEN   ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
     initFullscreen : function () {
@@ -676,51 +726,6 @@ $(function() {
     }      
   });
   
-  /*
-   * views.Intro
-   */
-  models.Intro = Backbone.Model.extend({
-    initialize : function(){
-      this.minYear = app.Years.getFirst();
-      this.maxYear = app.Years.getLast();
-      this.title = 'Crown Entities and the Good Employer';
-      this.subtitle = 'Annual Report Review '+this.minYear+' to '+this.maxYear;      
-      this.summary = 'The Human Rights Commission reviews and analyses the reporting of good employer obligations \
-by Crown entities and publishes its findings in an annual report "Crown entities and the Good Employer". \
-Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown entities and monitor their progress.';
-    }
-  });  
-  views.Intro = Backbone.View.extend({
-    initialize: function () {
-        this.render();
-    },
-    render: function(){
-      this.$el.html(this.template(this.model));
-      return this;      
-    },
-    template: _.template('\
-<div class="row">\n\
-<div class="col-left">\n\
-<h1><%= title %></h1>\n\
-<h3><%= subtitle %></h3>\n\
-<div class="summary"><p><%= summary %></p></div>\n\
-</div>\n\
-<div class="col-right">\n\
-<a class="home-link" href="#" title="Crown Entities and the Good Employer: Home"></a>\n\
-</div>\n\
-</div>'),
-    renderPdf: function (writer){
-      console.log('intro.renderpdf');
-
-      writer.addText(this.model.title,'intro_title');
-      writer.addText(this.model.subtitle,'intro_subtitle');     
-      writer.addText(this.model.summary,'intro_summary');     
-      writer.addLine('intro_line');
-      writer.addImage('intro_logo','intro_logo');
-       
-    }
-  });
-
  /* 
   * views.Overview
   */
@@ -960,13 +965,25 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
     accordionOpen:function(){      
       var that = this;
       this.$('.accordion-bottom').slideDown(function (){
-        that.$('.accordion').addClass('open');      
+        that.$('.accordion').addClass('open');
+        that.$('.accordion-top').attr('aria-expanded',true);
+        that.$('.accordion-top').attr('aria-selected',true);
+        that.$('.accordion-bottom').attr('aria-expanded',true);
+        that.$('.accordion-bottom').attr('aria-hidden',false);
+        that.$('button.accordion-open').attr('aria-hidden',true);
+        that.$('button.accordion-false').attr('aria-hidden',false);
       });      
     },
     accordionClose:function(){  
       var that = this;    
       this.$('.accordion-bottom').slideUp(function(){
         that.$('.accordion').removeClass('open');
+        that.$('.accordion-top').attr('aria-expanded',false);
+        that.$('.accordion-top').attr('aria-selected',false);
+        that.$('.accordion-bottom').attr('aria-expanded',false);
+        that.$('.accordion-bottom').attr('aria-hidden',true);
+        that.$('button.accordion-open').attr('aria-hidden',false);
+        that.$('button.accordion-false').attr('aria-hidden',true);        
       });      
     },
     render: function() {
@@ -995,71 +1012,71 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       return this;
     },
 template: _.template('\
-<div id="overview-title" class="row">\n\
+<div id="overview-title" class="row" >\n\
   <div class="col-left">\n\
-<h2><%= title %></h2>\
-  <h4 class="medium"><%= subtitle %></h4>\
+    <h2 id="overview-the-title" aria-label="Current report: Name of selected entity or entity group" ><%= title %></h2>\n\
+    <% if (subtitle !== "") { %>\n\
+    <h4 aria-label="Additional information" class="medium"><%= subtitle %></h4>\n\
+    <% } %>\n\
 </div>\n\
 <div class="col-right">\n\
-<h2 class="year active"><%= year %></h2>\n\
+<h2 aria-label="Year for current report" class="year active"><%= year %></h2>\n\
 </div>\n\
 </div><!-- #overview-title -->\n\
 <div id="overview-cat" class="row">\n\
-<table><tbody>\n\
 <% if (type !== "") {%>\n\
-  <tr>\n\
-    <td class="label"><%= type_label %> </td>\n\
-    <td><a class="load-report" data-report="type" data-reportid="<%= type_id %>" href="#<%= year %>/report/type-<%= type_id %>" title="Load Report: <%= type %>"><%= type %></a></td>\n\
-  </tr>\n\
+  <div>\n\
+    <span class="label"><%= type_label %> </span>\n\
+    <span><a class="load-report" data-report="type" data-reportid="<%= type_id %>" href="#<%= year %>/report/type-<%= type_id %>" title="Load Report: <%= type %>"><%= type %></a></span>\n\
+  </div>\n\
 <% } %>\n\
 <% if (size !== "") {%>\n\
-  <tr>\n\
-    <td class="label"><%= size_label %> </td>\n\
-    <td><a class="load-report" data-report="size" data-reportid="<%= size_id %>" href="#<%= year %>/report/size-<%= size_id %>" title="Load Report: <%= size %>"><%= size %></a></td>\n\
-  </tr>\n\
+  <div>\n\
+    <span class="label"><%= size_label %> </span>\n\
+    <span><a class="load-report" data-report="size" data-reportid="<%= size_id %>" href="#<%= year %>/report/size-<%= size_id %>" title="Load Report: <%= size %>"><%= size %></a></span>\n\
+  </div>\n\
 <% } %>\n\
-</tbody></table>\n\
 </div><!-- #overview-cat -->\n\
 <div id="overview-graph"></div><!-- #overview-graph -->\n\
-<div id="overview-bottom">\n\
-  <div class="accordion open">\n\
-  <div class="accordion-top row">\n\
-    <a href="#" class="accordion-open accordion-toggle icon-accordion-toggle">More</a>\n\
-    <a href="#" class="accordion-close accordion-toggle icon-accordion-toggle">Less</a>\n\
-    <div class="col-left">\n\
-      <div class="score-panel">\n\
-        <div class="score-label"><%= score_label %></div>\n\
-        <div class="score active"><%= score %>%</div>\n\
-        <% if (score_change !== "") {%>\n\
-          <div class="score-change active"><div class="icon-trend <%= score_change_class %>"></div>\n\
-          <% if (score_change > 0) {%>+<%}%><%= score_change %>%\n\
-          </div>\n\
-        <%}%>\n\
-      </div>\n\
-    </div>\n\
-    <div class="col-right">\n\
-      <div class="averages-panel"></div>\n\
-    </div>\n\
-  </div>\n\
-  <div class="accordion-bottom row">\n\
-    <div class="col-left">\n\
-      <div class="rank-panel">\n\
-        <div class="rank-label"><%= rank_label %></div>\n\
-        <div class="rank active"><span class="the-rank"><%= rank %></span><span class="rank-of"><%= rank_of %></span></div>\n\
-        <% if (rank_change !== "") {%>\n\
-          <div class="rank-change active "><div class="icon-trend <%= rank_change_class %>"></div>\n\
-            <% if (rank_change > 0) {%>+<%}%><%= rank_change %>\n\
-          </div>\n\
-        <%}%>\n\
+<div id="overview-bottom" role="tablist">\n\
+  <div class="accordion open" >\n\
+    <div class="accordion-top row" role="tab" aria-expanded="true" aria-selected="true">\n\
+      <a href="#" aria-hidden="true" role="button" class="accordion-open accordion-toggle icon-accordion-toggle" title="Show more" aria-label="Show more"></a>\n\
+      <a href="#" aria-hidden="false" role="button" class="accordion-close accordion-toggle icon-accordion-toggle" title="Show less" aria-label="Show less"></a>\n\
+      <div class="col-left">\n\
+        <div class="score-panel">\n\
+          <div class="score-label"><%= score_label %></div>\n\
+          <div class="score active"><%= score %>%</div>\n\
+          <% if (score_change !== "") {%>\n\
+            <div class="score-change active" aria-label="Change of score compared with last year"><div class="icon-trend <%= score_change_class %>"></div>\n\
+            <% if (score_change > 0) {%>+<%}%><%= score_change %>%\n\
+            </div>\n\
+          <%}%>\n\
         </div>\n\
-      <div class="summary-panel">\n\
-        <p><%= summary %></p>\n\
+      </div>\n\
+      <div class="col-right">\n\
+        <div class="averages-panel"></div>\n\
       </div>\n\
     </div>\n\
-    <div class="col-right">\n\
-      <div id="overview-time-graph"></div><!-- #overview-time-graph -->\n\
+    <div class="accordion-bottom row" role="tabpanel" aria-expanded="true" aria-hidden="false">\n\
+      <div class="col-left">\n\
+        <div class="rank-panel">\n\
+          <div class="rank-label"><%= rank_label %></div>\n\
+          <div class="rank active"><span class="the-rank"><%= rank %></span><span class="rank-of"><%= rank_of %></span></div>\n\
+          <% if (rank_change !== "") {%>\n\
+            <div class="rank-change active" aria-label="Change of score compared with last year"><div class="icon-trend <%= rank_change_class %>"></div>\n\
+              <% if (rank_change > 0) {%>+<%}%><%= rank_change %>\n\
+            </div>\n\
+          <%}%>\n\
+          </div>\n\
+        <div class="summary-panel">\n\
+          <p><%= summary %></p>\n\
+        </div>\n\
+      </div>\n\
+      <div class="col-right">\n\
+        <div id="overview-time-graph"></div><!-- #overview-time-graph -->\n\
+      </div>\n\
     </div>\n\
-  </div>\n\
   </div>\n\
 </div><!-- #overview-bottom -->\
     '),
@@ -1221,23 +1238,29 @@ template: _.template('\
       options.xaxis.min = -1.5;
       options.xaxis.max = this.collection.length + 1.5;
       
+      // accessibility table
+      var table = this.$('.overview-plot-table table tbody');
+      table.append('<tr><th>Entity</th><th>Compliance in %</th></tr>');
       for ( var i=0;i<this.collection.length;i++ ) {
         var model = this.collection.models[i];        
         if (model.getScore(true) === 0 ){    
           dataZero.push([i, model.getScore(true) ]);          
         } 
         data.push([i, model.getScore(true) ]);
-              
+        
         if (this.options.collectionActive !== null) {
           var modelActive = this.options.collectionActive.findWhere({ entityid: model.get('entityid') });
           if (typeof modelActive !== "undefined") {                        
             if (model.getScore(true) === 0 ){     
               dataZeroActive.push([i, model.getScore(true) ]);              
             }
-            dataActive.push([i, modelActive.getScore(true) ]);            
+            dataActive.push([i, modelActive.getScore(true) ]); 
+            table.append('<tr><td>Entity (active): '+model.get('title')+'</td><td>'+model.getScore(true)+'%</td></tr>');
           } else {
             dataActive.push([i, null]);
           }
+        } else {
+          table.append('<tr><td>Entity (other): '+model.get('title')+'</td><td>'+model.getScore(true)+'%</td></tr>');
         }
       }
 
@@ -1347,9 +1370,17 @@ template: _.template('\
 
    },            
     template: _.template('\
-<div class="plot-wrapper">\n\
-<div class="xaxis-label"><%= axis_label %></div>\n\
-<div class="overview-plot"></div>\n\
+<div class="plot-wrapper" role>\n\
+<div aria-hidden="true" role="presentation" class="yaxis-label"><%= axis_label %></div>\n\
+<div aria-label="Compliance of all entities - Chart. Details in the following table" role="img" class="overview-plot"></div>\n\
+<details class="overview-plot-table sr-only">\n\
+<summary>Compliance of all entities - Table</summary>\n\
+<table>\n\
+<caption>Compliance of all entities, active entities highlighted</caption>\n\
+<tbody>\n\
+</tbody>\n\
+</table>\n\
+</details>\n\
 </div>\
 ')           
   });
@@ -1576,13 +1607,13 @@ template: _.template('\
     },
     render: function() {
       this.subviews = [];
-      this.$el.html(this.template(this.model.attributes));
+      this.$el.html(this.template());
       var that = this;
       //subviews
       _.each(this.model.get('subview_models'), function(sub_model){
         var subview = new views.Criterion({model:sub_model});
         that.subviews.push(subview);
-        that.$el.append(subview.render().el);
+        that.$('#criteria-details-list').append(subview.render().el);
       });
       _.each(this.subviews, function(subview){      
         subview.renderGraphs();
@@ -1620,7 +1651,7 @@ template: _.template('\
       };                 
       return this;      
     },
-template: _.template('')       
+template: _.template('<div id="criteria-details-list" role="tablist"></div>')       
   }); 
   
   models.CriteriaDetails = Backbone.Model.extend({
@@ -1730,7 +1761,13 @@ template: _.template('')
     accordionOpen:function(){   
       var that = this;   
       this.$('.accordion-bottom').slideDown(function (){
-        that.$('.accordion').addClass('open');      
+        that.$('.accordion').addClass('open');   
+        that.$('.accordion-top').attr('aria-expanded',true);
+        that.$('.accordion-top').attr('aria-selected',true);
+        that.$('.accordion-bottom').attr('aria-expanded',true);
+        that.$('.accordion-bottom').attr('aria-hidden',false);
+        that.$('button.accordion-open').attr('aria-hidden',true);
+        that.$('button.accordion-false').attr('aria-hidden',false);        
       });      
     },
     accordionClose:function(duration){
@@ -1738,6 +1775,12 @@ template: _.template('')
       var that = this; 
       this.$('.accordion-bottom').slideUp(duration,function(){
         that.$('.accordion').removeClass('open');
+        that.$('.accordion-top').attr('aria-expanded',false);
+        that.$('.accordion-top').attr('aria-selected',false);
+        that.$('.accordion-bottom').attr('aria-expanded',false);
+        that.$('.accordion-bottom').attr('aria-hidden',true);
+        that.$('button.accordion-open').attr('aria-hidden',false);
+        that.$('button.accordion-false').attr('aria-hidden',true);             
       });      
     },
     render: function() {
@@ -1831,32 +1874,32 @@ template: _.template('')
     template : _.template('\
   <div class="criteria row">\n\
     <div class="accordion">\n\
-      <div class="accordion-top row">\n\
-        <a href="#" class="accordion-open accordion-toggle icon-accordion-toggle">More</a>\n\
-        <a href="#" class="accordion-close accordion-toggle icon-accordion-toggle">Less</a>\n\
+      <div class="accordion-top row" role="tab" aria-expanded="false" aria-selected="false">\n\
+        <a href="#" aria-hidden="true" role="button" class="accordion-open accordion-toggle icon-accordion-toggle" title="Show more" aria-label="Show more"></a>\n\
+        <a href="#" aria-hidden="false" role="button" class="accordion-close accordion-toggle icon-accordion-toggle" title="Show less" aria-label="Show less"></a>\n\\n\
         <div class="col-left">\n\
           <div class="title-score-wrap">\n\
-          <div class="title-score">\n\
+          <div class="title-score" >\n\
             <% if (report === "entity" && score === 100 && criteria === "single") { %>\n\
-              <span class="icon-score-pass"></span>\n\
+              <span class="icon-score-pass" aria-label="Entity compliant for criteria"></span>\n\
             <% } else if (report === "entity" && score === 0 && criteria === "single") { %>\n\
-              <span class="icon-score-fail"></span>\n\
+              <span class="icon-score-fail" aria-label="Entity not compliant for criteria"></span>\n\
             <% } else { %>\n\
               <% if (score === 0) { %> \n\
-                <span class="icon-score-inverse"></span><span class="the-score active"><%= score %>%</span>\n\
+                <span class="icon-score-inverse" aria-label="Compliance for criteria"></span><span class="the-score active"><%= score %>%</span>\n\
               <% } else { %>\n\
-                <span class="icon-score"></span><span class="the-score"><%= score %>%</span>\n\
+                <span class="icon-score" aria-label="Compliance for criteria"></span><span class="the-score"><%= score %>%</span>\n\
               <% } %>\n\
             <% } %>\n\
           </div>\n\
-          <div class="title"><a href="#" class="accordion-toggle">\n\<%= title %></a></div>\n\
+          <div class="title"><a href="#" class="accordion-toggle" title="Show or hide details">\n\<%= title %></a></div>\n\
         </div><!-- .title-score-wrap -->\n\
         </div><!-- .col-left -->\n\
         <div class="col-right">\n\
           <div class="averages-panel"></div>\n\
         </div><!-- .col-right -->\n\
       </div><!-- .accordion-top -->\n\
-      <div class="accordion-bottom row">\n\
+      <div class="accordion-bottom row" role="tabpanel" aria-expanded="true" aria-hidden="false">\n\
         <% if (criteria === "group") { %><div class="group-elements"></div><% } %>\n\
         <div class="col-left">\n\
           <div class="summary-panel"><%= summary %></div>\n\
@@ -2103,15 +2146,22 @@ template: _.template('')
       var data = [];
       var dataset = [];
       options.colors = [];    
+
+      // accessibility table
+      var table = this.$('.time-plot-table table tbody');
+      table.append('<tr><td></td><th>Year></th><th>Compliance in %</th></tr>');
       
       // axis padding in %      
       var all_keys = Object.keys(this.model.get('all'));
       options.xaxis.max =  Math.max.apply(Math, all_keys)+((all_keys.length-1)*this.axis_padding);
       options.xaxis.min =  Math.min.apply(Math, all_keys)-((all_keys.length-1)*this.axis_padding);
       
+      var that = this;
+      
       //all entities
       _.each(this.model.get('all'), function(year) { 
         data.push([year.year,year.percentage]);
+        table.append('<tr><th>'+that.model.get("all_label")+'</th><td>'+year.year+'</td><td>'+year.percentage+'%</td></tr>');        
       });
       dataset.push(
         this.lineOptions('all',{
@@ -2124,6 +2174,7 @@ template: _.template('')
       if (!$.isEmptyObject(this.model.get('type'))){
         _.each(this.model.get('type'), function(year) { 
           data.push([year.year,year.percentage]);
+          table.append('<tr><th>'+that.model.get("type_label")+'</th><td>'+year.year+'</td><td>'+year.percentage+'%</td></tr>');                  
         });
         dataset.push(this.lineOptions('type',{
           data  : data
@@ -2136,6 +2187,7 @@ template: _.template('')
       if (!$.isEmptyObject(this.model.get('size'))){
         _.each(this.model.get('size'), function(year) { 
           data.push([year.year,year.percentage]);
+          table.append('<tr><th>'+that.model.get("size_label")+'</th><td>'+year.year+'</td><td>'+year.percentage+'%</td></tr>');                            
         });
         dataset.push(
         this.lineOptions('size',{
@@ -2147,7 +2199,8 @@ template: _.template('')
       //if entity
       if (!$.isEmptyObject(this.model.get('entity'))){
         _.each(this.model.get('entity'), function(year) { 
-          data.push([year.year,year.percentage]);          
+          data.push([year.year,year.percentage]);
+          table.append('<tr><th>'+that.model.get("entity_label")+'</th><td>'+year.year+'</td><td>'+year.percentage+'%</td></tr>');                            
         });
         dataset.push(
           this.lineOptions('entity',{
@@ -2281,9 +2334,17 @@ template: _.template('')
     template: _.template('\
 <div class="plot-wrapper plot-wrapper-<%= cid %>">\n\
 <div class="averages-title"><%= title %></div>\n\
-<div class="xaxis-label"><%= axis_label %></div>\n\
-<div class="time-plot"></div>\n\
-<div class="legend"></div>\n\
+<div aria-hidden="true" role="presentation" class="yaxis-label"><%= axis_label %></div>\n\
+<div class="time-plot" aria-label="<%= title %> - Chart. Details in the following table" role="img" ></div>\n\
+<div aria-hidden="true" role="presentation" class="legend"></div>\n\
+<details class="time-plot-table sr-only">\n\
+<summary><%= title %> - Table</summary>\n\
+<table>\n\
+<caption><%= title %></caption>\n\
+<tbody>\n\
+</tbody>\n\
+</table>\n\
+</details>\n\
 </div>\
 '),
     template_legend: _.template('\
@@ -2795,7 +2856,8 @@ template: _.template('\
   
   function showOnLoad(s){
     $('.loading.'+s).hide();
-    $('.waiting.'+s).removeClass('waiting').css("visibility","visible");//.hide().show();
+    $('.waiting.'+s).removeClass('waiting').css("visibility","visible");
+    $('#report').attr('aria-busy',false);
   }
   function componentToHex(c) {
     var hex = c.toString(16);

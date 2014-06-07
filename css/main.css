@@ -64,6 +64,14 @@ body {
   background-color:white;
   color:#616161;
 }
+.sr-only{
+  position:absolute;
+  left:-10000px;
+  top:auto;
+  width:1px;
+  height:1px;
+  overflow:hidden;
+}
 a{
   text-decoration:none;
   color:#616161;
@@ -292,7 +300,9 @@ a.fullscreen{
   font-size: 28px;
   font-weight:bold;
 }
-#overview-graph {
+#overview-cat .label {
+    display: inline-block;
+    min-width: 32px;
 }
 #overview-bottom .score-label {
   font-size:16px;
@@ -337,6 +347,7 @@ a.fullscreen{
   right: 0;
   text-align: center;  
 }
+
 
 /* -----------------------------------------------------------------------
   ACCORDION 
@@ -565,7 +576,7 @@ a.fullscreen{
   position: relative;
   width: 418px;clear: both;
 }
-.xaxis-label {
+.yaxis-label {
   float: right;
   margin-right: 9px;  
 }
