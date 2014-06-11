@@ -393,7 +393,7 @@ $(function() {
       isActive = typeof isActive !== "undefined" ? isActive : true;      
       
       var filtered = this.filter(function(record) {
-        return record.isActive(isActive) && record.get("entityid") === entity_id;
+        return record.isActive(isActive) && record.get("entityid").toString() === entity_id.toString();
       });
       return new models.Records(filtered);         
     },
@@ -565,7 +565,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
         types           : app.Types.byRecords(records).sort().models,
         sizes           : app.Sizes.byRecords(records).models,
         years           : (this.model.get('report') === "entity") 
-? app.Years.active().byYears(Object.keys(app.Records.byEntity(parseInt(this.model.get('id'))).getResults())).models
+? app.Years.active().byYears(Object.keys(app.Records.byEntity(this.model.get('id')).getResults())).models
 : app.Years.active().models,        
         allActive       : (this.model.get('report') === "all" ) ? 'active' : '',
         entityActiveID  : (this.model.get('report') === "entity") ? this.model.get('id') : '',        
@@ -647,7 +647,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
     <% group_label = entity.get("title").charAt(0).toUpperCase();  %>\n\
     </optgroup><optgroup label="<%=group_label%>">\n\
     <% }  %>\n\
-    <option value="<%= entity.get("entityid") %>" <% if (entity.get("entityid") === parseInt(entityActiveID)) { print ("selected") } %> >\
+    <option value="<%= entity.get("entityid") %>" <% if (entity.get("entityid").toString() === entityActiveID.toString()) { print ("selected") } %> >\
     <%= entity.get("title") %></option>\
   <%})%>\
   </optgroup>\n\
@@ -778,7 +778,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       
       // individual entity
       else if (app.Control.get('report') === "entity") {
-        var entityID = parseInt(app.Control.get('id'));
+        var entityID = app.Control.get('id');
         var entityRecords = app.Records.byEntity(entityID);
         var entitiesByYear = entityRecords.byYear(this.currentYear);
         if (entitiesByYear.length === 0) {
@@ -1110,10 +1110,10 @@ template: _.template('\
           score_change = score_change.toString() + '%';          
           writer.addImage('overview_'+this.model.get('report')+'_down','overview_score_trend');
         } else if (score_change > 0){
-          score_change = '+' + score_change.toString();
+          score_change = '+' + score_change.toString() + '%';
           writer.addImage('overview_'+this.model.get('report')+'_up','overview_score_trend');        
         } else if (score_change === 0){
-          score_change = score_change.toString();
+          score_change = score_change.toString() + '%';
           writer.addImage('overview_'+this.model.get('report')+'_same','overview_score_trend');
         }
       }
@@ -1296,8 +1296,9 @@ template: _.template('\
       writer.addPlot(this.plot.getCanvas(),'overview_graph');
       writer.addText(this.options.axis_label,'overview_graph_axis_label');
       var item_graph = writer.item('overview_graph');
+      //add yaxis ticks
       for (var i = 0;i<this.ticks.length;i++){
-        writer.addText(this.ticks[this.ticks.length-1-i][1],'overview_graph_ticks',{offy:item_graph.h*0.89/(this.ticks.length-1)*i});        
+        writer.addText(this.ticks[this.ticks.length-1-i][1],'overview_graph_ticks',{offy:item_graph.h*0.92/(this.ticks.length-1)*i});        
       }
         
     },
@@ -1418,7 +1419,7 @@ template: _.template('\
       var sizeRecords,typeRecords;
       var that = this;
       if (app.Control.get('report') === "entity") {                                   
-        var entityID = parseInt(app.Control.get('id'));
+        var entityID = app.Control.get('id');
         var entityRecords = app.Records.byEntity(entityID);        
         var entitiesByYear = entityRecords.byYear(this.currentYear);
         if (entitiesByYear.length === 0) {
@@ -1624,7 +1625,7 @@ template: _.template('\
       return this;
     },
     renderPdf : function (writer, attr){
-      console.log('details.renderPdf');
+      //console.log('details.renderPdf');
       var detail_items = [writer.item('detail1'),writer.item('detail2')];  
       var pages = [];
       
@@ -1829,7 +1830,7 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
       this.subviews.averagesGraphView.renderGraph();
     },
     renderPdf : function (writer, attr){
-      console.log('Criteria.renderPdf');
+      //////console.log('Criteria.renderPdf');
       writer.addLine('half_line',$.extend(attr,{color:COLORS.dark}));
       writer.addCriteriaTitle(this.model.get('title'),this.model.get('score'),this.model.get('report'),this.model.get('criteria'),attr);      
       
@@ -1860,10 +1861,7 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
           var element = elements[i];
           // title, score        
           writer.addGroupCriteria(element.title,element.results[that.model.attributes.year].percentage,this.model.get('report'),{x:attr.x,y:attr.y+yoffset});
-          yoffset += 6.5;
-          if (i < elements.length-1){
-            writer.addLine('half_line',{x:attr.x,y:attr.y+yoffset});
-          }
+          yoffset += 6;
         };
 
         writer.addLine('half_line',{x:attr.x,y:attr.y+writer.defaults.offsets.averages.group-3});      
@@ -1976,7 +1974,7 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
       this.options = options || {};
     },
     render : function(){
-      console.log('averages.render');
+      //////console.log('averages.render');
       if (this.model.get('all') > -1 || this.model.get('type') > -1 || this.model.get('size') > -1) {
         this.$el.html(this.template(this.model.attributes));
       }
@@ -2224,7 +2222,7 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
       }      
     },
     plotclick : function(event, pos, item){
-      console.log('plotclick');
+      //////console.log('plotclick');
       event.preventDefault();
       // there must be a better way
       if ( item ) {
@@ -2281,7 +2279,7 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
       writer.addText(this.model.get('title'),item_key+'_title');
       var item_graph = writer.item(item_key);
       for (var i = 0;i<this.ticks.length;i++){
-        writer.addText(this.ticks[this.ticks.length-1-i][1],item_key+'_ticks',{offy:item_graph.h*0.75/(this.ticks.length-1)*i});        
+        writer.addText(this.ticks[this.ticks.length-1-i][1],item_key+'_ticks',{offy:item_graph.h*0.79/(this.ticks.length-1)*i});        
       }
       var all_keys = Object.keys(this.model.get('all'));
       for (var i = 0;i<all_keys.length;i++){
@@ -2445,7 +2443,7 @@ template: _.template('\
     },            
     // year missing > add most recent year
     redirect: function(route) {
-        console.log('route:redirect');
+        //////console.log('route:redirect');
         
         var year = app.Years.getLast(); 
         
@@ -2457,7 +2455,7 @@ template: _.template('\
     },
     // year specified, report missing >>> add report
     year: function(year) {
-        console.log('route:year');
+        //////console.log('route:year');
         
         //may need to validate further
         if ($.isNumeric(year)) {
@@ -2469,7 +2467,7 @@ template: _.template('\
     },
     // fully qualified >>> display report
     report: function(year, route) {        
-        console.log('route:report');
+        //////console.log('route:report');
 
         // Parse hash
         var filter = route.split('-');   
@@ -2479,7 +2477,7 @@ template: _.template('\
         if ($.inArray(filter[0],['all','entity','type','size']) === -1 || filter[1] === 'none' || filter[1] === '') {
           this.navigate(year + '/report/all-entities', {trigger: true});
         } else {
-          console.log('route:report: '+filter[0]+'-'+filter[1]);
+          //////console.log('route:report: '+filter[0]+'-'+filter[1]);
           app.Control.set({year:year,report:filter[0],id:filter[1]});
         
           // set report specific classes for css
@@ -2541,7 +2539,7 @@ template: _.template('\
         app.Records.add(records);   
       }
     });
-    console.log('data initialised');
+    //////console.log('data initialised');
   }
   
   /*
@@ -2553,7 +2551,7 @@ template: _.template('\
    * @returns {undefined}
    */
   function data_loaded(data){
-    console.log('data loaded');
+    //////console.log('data loaded');
     // initialise data
     data_init(data);
     showOnLoad('onData');        
@@ -2579,9 +2577,12 @@ template: _.template('\
 
         app.viewsIntro.renderPdf(app.docWriter);
         app.viewsOverview.renderPdf(app.docWriter);
+        app.docWriter.addText('1/2','page_no');
+        // skips to page 2
         app.viewsDetails.renderPdf(app.docWriter);
+        app.docWriter.addText('2/2','page_no');
         app.viewsFooter.renderPdf(app.docWriter);
-
+        
         app.docWriter.output();
       });   
   } 
@@ -2629,7 +2630,7 @@ template: _.template('\
         overview_score_label  : {y:96,size:10,style:'bold'},
         overview_score        : {y:99,size:40,style:'bold'},
         overview_score_trend  : {y:104,x:53,w:7,h:7},
-        overview_score_change   : {y:111,x:54},
+        overview_score_change   : {y:111,x:53},
         overview_score_line   : {y:117,w:44,h:0.75,color:COLORS.light},
         //----------------
         overview_rank_label   : {y:124,style:'bold',w:44,yalign:'center'},
@@ -2639,16 +2640,16 @@ template: _.template('\
         overview_rank_change    : {y:131,x:54},
         overview_rank_line    : {y:138,w:44,h:0.75,color:COLORS.light},
         //----------------
-        overview_graph        : {y:100,x:63,w:132,h:40},        
-        overview_graph_axis_label  : {y:96,x:180},      
-        overview_graph_ticks  : {y:103.5,x:188,yalign:'center'},
-        averages_graph        : {y:149,x:107,w:89,h:30},
-        averages_graph_title  : {y:142.5,x:110,style:'bold'},     
-        averages_graph_axis_label  : {y:146,x:180},      
-        averages_graph_ticks  : {y:152.5,x:188,yalign:'center'},             
-        averages_graph_xticks : {y:176,x:107,style:'bold'},             
-        averages_graph_legend : {y:183,x:110,size:7},
-        averages_graph_legend_line : {y:185,x:110,w:5,h:1},        
+        overview_graph        : {y:100,x:63,w:132,h:39.3},        
+        overview_graph_axis_label  : {y:96,x:180,size:7},      
+        overview_graph_ticks  : {y:103,x:188,yalign:'center'},
+        averages_graph        : {y:149,x:107,w:89,h:34},
+        averages_graph_title  : {y:144,x:110,style:'bold'},     
+        averages_graph_axis_label : {y:145,x:180,size:7},      
+        averages_graph_ticks  : {y:152,x:188,yalign:'center'},             
+        averages_graph_xticks : {y:179,x:107,style:'bold'},             
+        averages_graph_legend : {y:186,x:110,size:7},
+        averages_graph_legend_line : {y:187.6,x:110,w:5,h:1},        
         overview_averages     : {y:142.5,w:85,style:'bold'},
         averages              : {w:85,style:'bold'},
         overview_summary      : {y:162,w:85},
@@ -2656,14 +2657,16 @@ template: _.template('\
         average_line          : {w:22,h:4,margin:{right:6},color:COLORS.light},        
         half_line             : {w:85,h:0.75,color:COLORS.light},
         //----------------
-        detail1                : {y:208},
-        detail2                : {y:15},
-        detail_title           : {style:'bold',w:65,size:11},
-        detail_image           : {w:12,h:12},
-        detail_image_small     : {w:3,h:3},
-        detail_score           : {style:'bold',size:11,color:COLORS.white},
+        detail1               : {y:208},
+        detail2               : {y:15},
+        detail_title          : {style:'bold',w:65,size:11},
+        detail_image          : {w:12,h:12},
+        detail_image_small    : {w:3,h:3},
+        detail_score          : {style:'bold',size:11,color:COLORS.white},
         //----------------
-        footer_image           : {y:222,w:180}
+        footer_image          : {y:222,w:180},
+        //----------------
+        page_no               : {y:279.3,x:199,size:7}
       }
       
     },
@@ -2685,7 +2688,21 @@ template: _.template('\
       return pt / this.doc.internal.scaleFactor;
     },
     output : function(){
-       this.doc.output('datauri');
+      //this.doc.output('datauri');
+      var file = 'HRC-Good-Employer_';
+      if (app.Control.get('report') === 'all') {
+        file += 'All-Entities';
+      } else if (app.Control.get('report') === 'type') {
+        file += 'Type-' + app.Control.get('id');
+      } else if (app.Control.get('report') === 'size') {
+        file += 'Size-' + app.Control.get('id');
+      } else if (app.Control.get('report') === 'entity') {
+        file += app.Records
+                .byYear(parseInt(app.Control.get('year')))
+                .byEntity(app.Control.get('id')).first()
+                .get('title').replace(/\s/g, "-");
+      }
+      this.doc.save(file + '_' + app.Control.get('year') + '.pdf');
     },
     addText : function(s,item_key,item_attr){
       if (s === "") return 0;
@@ -2840,10 +2857,10 @@ template: _.template('\
         var image_key = 'details_entity_';
         if (score >= 50 ) {          
           image_key += 'pass_small';
-          this.addImage(image_key,'detail_image_small',{},{x:attr.x+4.5,y:attr.y+2});
+          this.addImage(image_key,'detail_image_small',{},{x:attr.x+4.5,y:attr.y+3});
         } else if (score < 50 ) {
           image_key += 'fail_small';
-          this.addImage(image_key,'detail_image_small',{},{x:attr.x+4.5,y:attr.y+2});
+          this.addImage(image_key,'detail_image_small',{},{x:attr.x+4.5,y:attr.y+3});
         }
       } else {
         var score_offset = 3;
@@ -2852,9 +2869,9 @@ template: _.template('\
         } else if (score > 99 ) {
           score_offset = 1.4;
         }        
-        this.addText(score + '%','def',{x:attr.x+score_offset,y:attr.y+1.5,style:'bold'});
+        this.addText(score + '%','def',{x:attr.x+score_offset,y:attr.y+3,style:'bold'});
       }
-      this.addText(text,'def',{x:attr.x+10,y:attr.y+1.5});
+      this.addText(text,'def',{x:attr.x+10,y:attr.y+3});
     },
     addPage : function (){
       this.doc.addPage();

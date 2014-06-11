@@ -304,6 +304,12 @@ a.fullscreen{
     display: inline-block;
     min-width: 32px;
 }
+#overview-graph {
+    margin-bottom: 11px;
+}
+#overview .accordion .col-left {
+    padding-top: 2px;
+}
 #overview-bottom .score-label {
   font-size:16px;
   font-weight:bold;
@@ -357,7 +363,7 @@ a.fullscreen{
 }
 .accordion-top {
     height: 112px;
-    padding-top: 23px;
+    padding-top: 11px;
     position: relative;
 }
 .accordion .col-left{
@@ -366,6 +372,7 @@ a.fullscreen{
 .accordion .col-right{
   width:411px;
   margin-left:34px;
+  padding-top: 12px;
 }
 .accordion-bottom .col-left,
 .accordion-bottom .col-right{
