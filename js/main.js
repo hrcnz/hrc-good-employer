@@ -2424,7 +2424,7 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
         copyright: '&#0169; '+ app.Control.get('updated').getFullYear() + ' New Zealand Human Rights Commission',
         hrc_url : 'http://www.hrc.co.nz/eeo',        
         builtby_url : 'http://dumpark.com',
-        builtby : 'a data visualisation by dumpark',        
+        builtby : 'a data visualisation by dumpark'   
       }); 
     }    
     
