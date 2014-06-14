@@ -1173,7 +1173,7 @@ template: _.template('\
     initialize : function (options) {
       this.options = options || {};
       this.currentIndex = -99;
-      this.ticks = [[0,'0%'],[25,''],[50,'50%'],[75,''],[100,'100%']];
+      this.ticks = [[0,'0%'],[25,'25%'],[50,'50%'],[75,'75%'],[100,'100%']];
     },
     events : {
       "plotclick .overview-plot" : "plotclick",
