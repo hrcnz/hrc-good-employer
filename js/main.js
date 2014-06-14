@@ -3,7 +3,7 @@ $(function() {
   //
   // the pseudo database: all data kept in google spreadsheet   
   var doc_key  = '0AjJMRBK0X7j7dGNfXzVDY1VhVGRZb1E2eFJmZU9vY3c';
-  var doc_url  = 'https://docs.google.com/spreadsheet/pub?hl=en_US&hl=en_US&key='+doc_key+'&output=html';
+  var DOC_URL  = 'https://docs.google.com/spreadsheet/pub?hl=en_US&hl=en_US&key='+doc_key+'&output=html';
   var URL      = 'http://hrcnz.github.io/hrc-good-employer';
   var models   = {};
   var views    = {};
@@ -2461,139 +2461,6 @@ template: _.template('\
   
  
   
-  // Routers
-  routers.App = Backbone.Router.extend({
-    routes: {
-        '': 'redirect',
-        'report/*filter': 'redirect',
-        ':year': 'year',
-        ':year/report/*filter': 'report' //fully qualified
-    },            
-    // year missing > add most recent year
-    redirect: function(route) {
-        //////console.log('route:redirect');
-        
-        var year = app.Years.getLast(); 
-        
-        if (route) {          
-          this.navigate(year.toString() + '/report/' + route, {trigger: true});
-        } else {
-          this.navigate(year.toString(), {trigger: true});
-        }
-    },
-    // year specified, report missing >>> add report
-    year: function(year) {
-        //////console.log('route:year');
-        
-        //may need to validate further
-        if ($.isNumeric(year)) {
-          this.navigate(year + '/report/all-entities', {trigger: true});
-        } else {
-          // back to start
-          this.navigate('', {trigger: true});
-        }
-    },
-    // fully qualified >>> display report
-    report: function(year, route) {        
-        //////console.log('route:report');
-
-        // Parse hash
-        var filter = route.split('-');   
-        // create control view
-        
-        //default to all entities
-        if ($.inArray(filter[0],['all','entity','type','size']) === -1 || filter[1] === 'none' || filter[1] === '') {
-          this.navigate(year + '/report/all-entities', {trigger: true});
-        } else {
-          //////console.log('route:report: '+filter[0]+'-'+filter[1]);
-          app.Control.set({year:year,report:filter[0],id:filter[1]});
-        
-          // set report specific classes for css
-          $('#report').removeClass (function (index, css) {
-            return (css.match (/\breport-\S+/g) || []).join(' ');
-          });
-          $('#report').addClass('report-'+filter[0]).addClass('report-id-'+filter[1]);
-
-          // create other models if necessary
-          app.Overview      = app.Overview       || new models.Overview();
-          app.Details       = app.Details        || new models.Details();
-          app.Footer        = app.Footer         || new models.Footer();
-          
-          // update models >>> trigger view render
-          app.Overview.update();
-          app.Details.update();
-
-          // create views if necessary
-          app.viewsIntro    = app.viewsIntro     || new views.Intro(    { el: $("#intro"),    model: new models.Intro()});
-          app.viewsTools    = app.viewsTools     || new views.Tools(    { el: $("#tools"),    model: app.Control});                
-          app.viewsOverview = app.viewsOverview  || new views.Overview( { el: $("#overview"), model: app.Overview});
-          app.viewsDetails  = app.viewsDetails   || new views.Details(  { el: $("#details"),  model: app.Details});        
-          app.viewsFooter   = app.viewsFooter    || new views.Footer(   { el: $("#footer"),   model: app.Footer});
-        }
-    }
-
-  });
-  
-  
-  /*
-   * data_init
-   * 
-   * set up models and collections
-   * 
-   * @param {type} data: all spreadsheet data 
-   * @returns {undefined}
-   */  
-  function data_init (data){
-    app.Control         = new models.Control({updated:new Date(data.Years.updated)});
-    // 1. init years
-    app.Years           = new models.Years(data.Years.elements);    
-    // 2. init types
-    app.Types           = new models.Types(data.Types.elements);    
-    // 3. init sizes
-    app.Sizes           = new models.Sizes(data.Sizes.elements);    
-    // 4. init criteria and criteriaGroups
-    app.Criteria        = new models.Criteria(data.Criteria.elements);  
-    app.CriteriaGroups  = new models.CriteriaGroups(data.CriteriaGroups.elements);      
-    // 5. finally init records
-    // for all active years 
-    // try to find data, data["year"].elements
-    app.Records         = new models.Records();
-    app.Years.each(function(year){
-      if (year.isActive()) {
-        var records = data[year.get('year')].elements;
-        _.each(records, function(record){
-          record.year = year.get('year');
-        });
-        app.Records.add(records);   
-      }
-    });
-    //////console.log('data initialised');
-  }
-  
-  /*
-   * storageReady
-   * 
-   * called when all spreadsheet data is stored 
-   *    
-   * @param {type} data
-   * @returns {undefined}
-   */
-  function data_loaded(data){
-    //////console.log('data loaded');
-    // initialise data
-    data_init(data);
-    showOnLoad('onData');        
-    // start application
-    app.App = new routers.App();
-    Backbone.history.start();
-    
-  }
-  
-    // Start the application
-  $(function() {
-    //Initialise tabletop instance with data, calls data_loaded when all data read
-    Tabletop.init({ key: doc_url, parseNumbers : true, callback: data_loaded });
-  });  
 
   
   function renderPdf() {   
@@ -2919,53 +2786,192 @@ template: _.template('\
   function rgbToHex(rgb) {
       return "#" + componentToHex(rgb.r) + componentToHex(rgb.g) + componentToHex(rgb.b);
   }  
-//ie8
-if(typeof String.prototype.trim !== 'function') {
-  String.prototype.trim = function() {
-    return this.replace(/^\s+|\s+$/g, ''); 
-  };
-}
-//ie8
-if (!Object.keys) {
-  Object.keys = (function () {
-    'use strict';
-    var hasOwnProperty = Object.prototype.hasOwnProperty,
-        hasDontEnumBug = !({toString: null}).propertyIsEnumerable('toString'),
-        dontEnums = [
-          'toString',
-          'toLocaleString',
-          'valueOf',
-          'hasOwnProperty',
-          'isPrototypeOf',
-          'propertyIsEnumerable',
-          'constructor'
-        ],
-        dontEnumsLength = dontEnums.length;
+  //ie8
+  if(typeof String.prototype.trim !== 'function') {
+    String.prototype.trim = function() {
+      return this.replace(/^\s+|\s+$/g, ''); 
+    };
+  }
+  //ie8
+  if (!Object.keys) {
+    Object.keys = (function () {
+      'use strict';
+      var hasOwnProperty = Object.prototype.hasOwnProperty,
+          hasDontEnumBug = !({toString: null}).propertyIsEnumerable('toString'),
+          dontEnums = [
+            'toString',
+            'toLocaleString',
+            'valueOf',
+            'hasOwnProperty',
+            'isPrototypeOf',
+            'propertyIsEnumerable',
+            'constructor'
+          ],
+          dontEnumsLength = dontEnums.length;
 
-    return function (obj) {
-      if (typeof obj !== 'object' && (typeof obj !== 'function' || obj === null)) {
-        throw new TypeError('Object.keys called on non-object');
-      }
-
-      var result = [], prop, i;
-
-      for (prop in obj) {
-        if (hasOwnProperty.call(obj, prop)) {
-          result.push(prop);
+      return function (obj) {
+        if (typeof obj !== 'object' && (typeof obj !== 'function' || obj === null)) {
+          throw new TypeError('Object.keys called on non-object');
         }
-      }
 
-      if (hasDontEnumBug) {
-        for (i = 0; i < dontEnumsLength; i++) {
-          if (hasOwnProperty.call(obj, dontEnums[i])) {
-            result.push(dontEnums[i]);
+        var result = [], prop, i;
+
+        for (prop in obj) {
+          if (hasOwnProperty.call(obj, prop)) {
+            result.push(prop);
           }
         }
+
+        if (hasDontEnumBug) {
+          for (i = 0; i < dontEnumsLength; i++) {
+            if (hasOwnProperty.call(obj, dontEnums[i])) {
+              result.push(dontEnums[i]);
+            }
+          }
+        }
+        return result;
+      };
+    }());
+  }
+
+
+  // Routers
+  routers.App = Backbone.Router.extend({
+    routes: {
+        '': 'redirect',
+        'report/*filter': 'redirect',
+        ':year': 'year',
+        ':year/report/*filter': 'report' //fully qualified
+    },            
+    // year missing > add most recent year
+    redirect: function(route) {
+        //////console.log('route:redirect');
+        
+        var year = app.Years.getLast(); 
+        
+        if (route) {          
+          this.navigate(year.toString() + '/report/' + route, {trigger: true});
+        } else {
+          this.navigate(year.toString(), {trigger: true});
+        }
+    },
+    // year specified, report missing >>> add report
+    year: function(year) {
+        //////console.log('route:year');
+        
+        //may need to validate further
+        if ($.isNumeric(year)) {
+          this.navigate(year + '/report/all-entities', {trigger: true});
+        } else {
+          // back to start
+          this.navigate('', {trigger: true});
+        }
+    },
+    // fully qualified >>> display report
+    report: function(year, route) {        
+        //////console.log('route:report');
+
+        // Parse hash
+        var filter = route.split('-');   
+        // create control view
+        
+        //default to all entities
+        if ($.inArray(filter[0],['all','entity','type','size']) === -1 || filter[1] === 'none' || filter[1] === '') {
+          this.navigate(year + '/report/all-entities', {trigger: true});
+        } else {
+          //////console.log('route:report: '+filter[0]+'-'+filter[1]);
+          app.Control.set({year:year,report:filter[0],id:filter[1]});
+        
+          // set report specific classes for css
+          $('#report').removeClass (function (index, css) {
+            return (css.match (/\breport-\S+/g) || []).join(' ');
+          });
+          $('#report').addClass('report-'+filter[0]).addClass('report-id-'+filter[1]);
+
+          // create other models if necessary
+          app.Overview      = app.Overview       || new models.Overview();
+          app.Details       = app.Details        || new models.Details();
+          app.Footer        = app.Footer         || new models.Footer();
+          
+          // update models >>> trigger view render
+          app.Overview.update();
+          app.Details.update();
+
+          // create views if necessary
+          app.viewsIntro    = app.viewsIntro     || new views.Intro(    { el: $("#intro"),    model: new models.Intro()});
+          app.viewsTools    = app.viewsTools     || new views.Tools(    { el: $("#tools"),    model: app.Control});                
+          app.viewsOverview = app.viewsOverview  || new views.Overview( { el: $("#overview"), model: app.Overview});
+          app.viewsDetails  = app.viewsDetails   || new views.Details(  { el: $("#details"),  model: app.Details});        
+          app.viewsFooter   = app.viewsFooter    || new views.Footer(   { el: $("#footer"),   model: app.Footer});
+        }
+    }
+
+  });
+  
+  
+  /*
+   * data_init
+   * 
+   * set up models and collections
+   * 
+   * @param {type} data: all spreadsheet data 
+   * @returns {undefined}
+   */  
+  function data_init (data){
+    app.Control         = new models.Control({updated:new Date(data.Years.updated)});
+    // 1. init years
+    app.Years           = new models.Years(data.Years.elements);    
+    // 2. init types
+    app.Types           = new models.Types(data.Types.elements);    
+    // 3. init sizes
+    app.Sizes           = new models.Sizes(data.Sizes.elements);    
+    // 4. init criteria and criteriaGroups
+    app.Criteria        = new models.Criteria(data.Criteria.elements);  
+    app.CriteriaGroups  = new models.CriteriaGroups(data.CriteriaGroups.elements);      
+    // 5. finally init records
+    // for all active years 
+    // try to find data, data["year"].elements
+    app.Records         = new models.Records();
+    app.Years.each(function(year){
+      if (year.isActive()) {
+        var records = data[year.get('year')].elements;
+        _.each(records, function(record){
+          record.year = year.get('year');
+        });
+        app.Records.add(records);   
       }
-      return result;
-    };
-  }());
-}
+    });
+    //////console.log('data initialised');
+  }
+  
+  /*
+   * storageReady
+   * 
+   * called when all spreadsheet data is stored 
+   *    
+   * @param {type} data
+   * @returns {undefined}
+   */
+  function data_loaded(data){
+    //////console.log('data loaded');
+    // initialise data
+    data_init(data);
+    showOnLoad('onData');        
+    // start application
+    app.App = new routers.App();
+    Backbone.history.start();
+    
+  }
+  
+    // Start the application
+  $(function() {
+    //Initialise tabletop instance with data, calls data_loaded when all data read
+    Tabletop.init({ 
+      key: DOC_URL, 
+      parseNumbers : true, 
+      callback: data_loaded,
+      proxy: 'https://hrceeo.s3.amazonaws.com'});
+  });  
 
 });
 
