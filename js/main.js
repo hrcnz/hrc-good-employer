@@ -28,6 +28,7 @@ $(function() {
 It also monitors their progress towards equal employment opportunities (EEO) and provides good employer guidance. The Commission's annual good employer review gives \
 Crown entities an indicator report showing their reporting progress. A new web application also allows Crown entities to track their own progress across years, and \
 compare with other Crown entities of the same size, type and the sector as a whole.";
+   var ISBN = '978-0-478-35664-9';
 
   /*
    * DATA models & collections: representing the data loaded from spreadsheet
@@ -2413,45 +2414,50 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
     
     initialize : function(){
       this.monthNames = [ "January", "February", "March", "April", "May", "June","July", "August", "September", "October", "November", "December" ],
-      this.set({        
+      this.set({
+        claim:'Mana me ngā tika tangata ma tātou - Dignity and human rights for all',        
+        hrc_url_title : 'To explore all good employer reports visit:',
+        hrc_url_anchor : 'www.hrc.co.nz/eeo',
         published: 'Last updated: ' +app.Control.get('updated').getDate()+'. '
                 +this.monthNames[app.Control.get('updated').getMonth()]+' '+app.Control.get('updated').getFullYear(),//+ this.monthNames[app.Control.get('updated').getMonth()],
+        isbn: 'ISBN: ' + ISBN,
         copyright: '&#0169; '+ app.Control.get('updated').getFullYear() + ' New Zealand Human Rights Commission',
+        hrc_url : 'http://www.hrc.co.nz/eeo',        
         builtby_url : 'http://dumpark.com',
-        builtby : 'a data visualisation by dumpark',
-        hrc_url : 'http://www.hrc.co.nz',
-        hrc_url_title : 'To explore all good employer reports visit:',
-        hrc_url_anchor : 'www.hrc.co.nz/good-employer'
+        builtby : 'a data visualisation by dumpark',        
       }); 
-    },
-    update : function(){
-      
-    }        
+    }    
     
   });
   views.Footer = Backbone.View.extend({
     initialize: function() {
       this.render();
-      this.listenTo(this.model, 'change', this.render);
     },
     render: function() {
       this.$el.html(this.template(this.model.attributes));
     },
     renderPdf: function(writer) {
       writer.addImage('footer','footer_image');
+      writer.addText(this.model.get('hrc_url_title'),'footer_url_title');
+      writer.addText(this.model.get('hrc_url_anchor'),'footer_url');
+      writer.addText(this.model.get('published'),'footer_published');
+      writer.addText(this.model.get('isbn'),'footer_isbn');
+      writer.addLine('footer_line1');
+      writer.addLine('footer_line2');
     },
 template: _.template('\
 <div class="footer-scene">\n\
   <div class="col-left">\n\
     <div class="footer-wrap-left">\n\
-    <div class="footer-published"><%= published %></div>\n\
-    <div class="footer-copyright"><%= copyright %></div>\n\
+      <div class="footer-claim"><%= claim %></div>\n\
+      <div class="footer-hrcurl-title"><%= hrc_url_title %></div>\n\
+      <div class="footer-hrcurl"><a href="<%= hrc_url %>" target="_blank" title="<%= hrc_url_title %> <%= hrc_url_anchor %>"><%= hrc_url_anchor %></a></div>\n\
     </div>\n\
   </div>\n\
   <div class="col-right">\n\
     <div class="footer-wrap-right">\n\
-      <div class="footer-hrcurl-title"><%= hrc_url_title %></div>\n\
-      <div class="footer-hrcurl"><a href="<%= hrc_url %>" target="_blank" title="<%= hrc_url_title %>"><%= hrc_url_anchor %></a></div>\n\
+      <div class="footer-published"><%= published %></div>\n\
+      <div class="footer-copyright"><%= copyright %></div>\n\
     </div>\n\
   </div>\n\
 </div>\n\
@@ -2559,7 +2565,14 @@ template: _.template('\
         detail_image_small    : {w:3,h:3},
         detail_score          : {style:'bold',size:11,color:COLORS.white},
         //----------------
-        footer_image          : {y:222,w:180},
+        footer_image          : {y:222,w:180, color:COLORS.white},
+        footer_url_title      : {y:270,x:20,w:75,size:7,color:COLORS.white},
+        footer_url            : {y:273,x:20,w:75,size:10,color:COLORS.white},
+        footer_published      : {y:255,x:103,w:56,size:7,color:COLORS.white},
+        footer_isbn           : {y:259,x:103,w:56,size:7,color:COLORS.white},
+        footer_c              : {y:274,x:103,w:56,size:7,style:'bold',color:COLORS.white},
+        footer_line1          : {y:255,x:100,w:1,h:22,color:COLORS.white},
+        footer_line2          : {y:255,x:162,w:1,h:22,color:COLORS.white},
         //----------------
         page_no               : {y:279.3,x:199,size:7}
       }
@@ -2627,6 +2640,15 @@ template: _.template('\
     },
     addLine : function(item_key,item_attr){
       var item = this.item(item_key,item_attr); 
+      var direction = 'h';      
+      
+      if (item.h > item.w) {
+        var h = item.h;
+        item.h = item.w;
+        item.w = h;
+        direction = 'v';
+      }
+      
       this.doc.setLineWidth(this.convert2mm(item.h)); 
       this.doc.setDrawColor(item.color.r,item.color.g,item.color.b);
       
@@ -2639,7 +2661,11 @@ template: _.template('\
           offx += item.dash;
         }
       } else {
-        this.doc.line(item.x,item.y+item.offy,item.x+item.w,item.y+item.offy);
+        if (direction === 'h') {
+          this.doc.line(item.x,item.y+item.offy,item.x+item.w,item.y+item.offy);
+        }else {
+          this.doc.line(item.x,item.y+item.offy,item.x,item.y+item.offy+item.w);
+        }
       }
     },
         
@@ -2833,7 +2859,6 @@ template: _.template('\
       };
     }());
   }
-
 
   // Routers
   routers.App = Backbone.Router.extend({
