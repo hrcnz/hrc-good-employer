@@ -4,7 +4,6 @@ $(function() {
   // the pseudo database: all data kept in google spreadsheet   
   var doc_key  = '0AjJMRBK0X7j7dGNfXzVDY1VhVGRZb1E2eFJmZU9vY3c';
   var doc_url  = 'https://docs.google.com/spreadsheet/pub?hl=en_US&hl=en_US&key='+doc_key+'&output=html';
-  //var doc_url  = 'https://docs.google.com/spreadsheets/d/'+doc_key+'/pubhtml';
   var URL      = 'http://hrcnz.github.io/hrc-good-employer';
   var models   = {};
   var views    = {};
@@ -25,6 +24,10 @@ $(function() {
         'size'          :{'r':36, 'g':98, 'b':132}, // blue: 246284
         'size_light'    :{'r':185,'g':195,'b':212} //b9c3d4
       };
+   var SUMMARY = "The Human Rights Commission reviews and analyses the reporting of good employer obligations by Crown entities in their annual reports. \
+It also monitors their progress towards equal employment opportunities (EEO) and provides good employer guidance. The Commission's annual good employer review gives \
+Crown entities an indicator report showing their reporting progress. A new web application also allows Crown entities to track their own progress across years, and \
+compare with other Crown entities of the same size, type and the sector as a whole.";
 
   /*
    * DATA models & collections: representing the data loaded from spreadsheet
@@ -515,9 +518,7 @@ $(function() {
       this.maxYear = app.Years.getLast();
       this.title = 'Crown Entities and the Good Employer';
       this.subtitle = 'Annual Report Review '+this.minYear+' to '+this.maxYear;      
-      this.summary = 'The Human Rights Commission reviews and analyses the reporting of good employer obligations \
-by Crown entities and publishes its findings in an annual report "Crown entities and the Good Employer". \
-Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown entities and monitor their progress.';
+      this.summary = SUMMARY;
     }
   });  
   views.Intro = Backbone.View.extend({
@@ -560,13 +561,20 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
     },
     render: function(){      
       var records = app.Records.byYear(parseInt(this.model.get('year')));
+      var years = app.Years.active();
+      if (this.model.get('report') === "entity") {
+        years = years.byYears(Object.keys(app.Records.byEntity(this.model.get('id')).getResults()));
+      } else if (this.model.get('report') === "size") {
+        years = years.byYears(Object.keys(app.Records.bySize(this.model.get('id')).getResults()));      
+      } else if (this.model.get('report') === "type") {
+        years = years.byYears(Object.keys(app.Records.byType(this.model.get('id')).getResults()));              
+      } 
+      
       var variables = {
         entities        : records.models,
         types           : app.Types.byRecords(records).sort().models,
         sizes           : app.Sizes.byRecords(records).models,
-        years           : (this.model.get('report') === "entity") 
-? app.Years.active().byYears(Object.keys(app.Records.byEntity(this.model.get('id')).getResults())).models
-: app.Years.active().models,        
+        years           : years.models,        
         allActive       : (this.model.get('report') === "all" ) ? 'active' : '',
         entityActiveID  : (this.model.get('report') === "entity") ? this.model.get('id') : '',        
         typeActiveID    : (this.model.get('report') === "type") ? this.model.get('id') : '',
@@ -816,7 +824,7 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
               size:resultsSize,
               entity:entityRecords.getResults(), 
               type_label  : 'Same type: ' + entity.getTypeTitle(), 
-              size_label  : 'Same Size: ' + entity.getStaffCatTitle(), 
+              size_label  : 'Same size: ' + entity.getStaffCatTitle(), 
               entity_label: 'Entity: ' + entity.get('title')        
             })
           });        
@@ -997,7 +1005,8 @@ Its role is to provide Equal Employment Opportunities (EEO) guidance to Crown en
       this.subviews.graphView = new views.OverviewGraph({ 
         collection        : this.model.get('graphCollection'),
         collectionActive  : this.model.get('graphCollectionActive'),
-        axis_label            : 'Compliance'
+        axis_label        : 'Compliance',
+        average_line      : this.model.get('score')
       });
       this.$('#overview-graph').append( this.subviews.graphView.render().el );
       this.subviews.graphView.renderGraph();
@@ -1229,6 +1238,7 @@ template: _.template('\
       options.yaxis.ticks = this.ticks;
       
       var data = [];
+      var dataset = [];
       var dataZero = [];
       var dataZeroActive = [];
       var dataActive = [];
@@ -1266,27 +1276,45 @@ template: _.template('\
         }
       }
 
-      var dataset = [
+      dataset.push(
         { data : data, 
           bars : {fillColor:app.Control.color(true,true)},
           highlightColor : rgbToHex(COLORS.all)
-        },
+        });
+      dataset.push(
         { data : dataZero, 
           points: {show:true},
           bars: {show:false},
           highlightColor : rgbToHex(COLORS.all)
-        },
+        });
+      dataset.push(
         { data : dataActive, 
           bars : {fillColor:app.Control.color(false,true)},
           highlightColor : rgbToHex(COLORS.all)          
-        },        
+        });
+      dataset.push(
         { data : dataZeroActive, 
           points: {show:true},
           bars: {show:false},
           highlightColor : rgbToHex(COLORS.all)
+        });
+      if (app.Control.get('report') !== 'entity') {
+        dataset.push(
+          { data : [[-1,this.options.average_line],[this.collection.length,this.options.average_line]],
+            lines : {show:true,lineWidth:1},
+            bars: {show:false}
+          }
+        );
+        if (app.Control.get('report') === 'all') {
+          options.colors.push(rgbToHex(COLORS.all));
+        } else if (app.Control.get('report') === 'type') {
+          options.colors.push(rgbToHex(COLORS.type));
+        } else if (app.Control.get('report') === 'size') {
+          options.colors.push(rgbToHex(COLORS.size));
         }
-      ];
+      }      
 
+      
       // Now, the chart can be drawn ...
       this.plot = $.plot( this.$('.overview-plot'), dataset, options );
 
@@ -2119,21 +2147,21 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
       var line_width_main  = 2.5;
       if (report === 'all') { 
         if(app.Control.get('report') === 'all') {
-          return $.extend(options,{lines:{show:true,lineWidth:line_width_main}});
+          return $.extend(options,{lines:{show:true,lineWidth:line_width_main},points : {show: true}});
         } else {
           return $.extend(options,{dashes:{show:true,lineWidth:line_width,dashLength:2}});
         }
       }
       else if (report === 'type') { 
         if(app.Control.get('report') === 'type') {
-          return $.extend(options,{lines:{show:true,lineWidth:line_width_main}});
+          return $.extend(options,{lines:{show:true,lineWidth:line_width_main},points : {show: true}});
         } else {
           return $.extend(options,{dashes:{show:true,lineWidth:line_width,dashLength:5}});
        }
       }
       else if (report === 'size') { 
        if(app.Control.get('report') === 'size') {
-          return $.extend(options,{lines:{show:true,lineWidth:line_width_main}});
+          return $.extend(options,{lines:{show:true,lineWidth:line_width_main},points : {show: true}});
         } else {
           return $.extend(options,{dashes:{show:true,lineWidth:line_width,dashLength:8}});
         }
@@ -2572,7 +2600,7 @@ template: _.template('\
       
       // load image data json
       
-      $.getJSON('data/imagedata.json',function(imagedata){
+      $.getJSON('data/pdfimagedata.json',function(imagedata){
         app.docWriter = new models.DocWriter ({images:imagedata});
 
         app.viewsIntro.renderPdf(app.docWriter);
@@ -2614,9 +2642,9 @@ template: _.template('\
         half                  : {y:15,x:15,w:85,h:0,size:8,style:'normal',margin:{top:0,bottom:2,right:0,left:0},color:COLORS.dark},        
         intro_title           : {y:15,size:17,style:'bold'},
         intro_subtitle        : {y:24,size:10,style:'bold'},
-        intro_summary         : {y:32,w:130},
+        intro_summary         : {y:32,w:128},
         intro_logo            : {y:13,x:163,w:32,h:35},
-        intro_line            : {y:54,h:0.75,color:COLORS.dark},
+        intro_line            : {y:58,h:0.75,color:COLORS.dark},
         //----------------
         //----------------
         overview_title        : {y:71,w:130,size:16,yalign:'center'},
