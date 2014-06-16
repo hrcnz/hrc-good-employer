@@ -24,10 +24,6 @@ $(function() {
         'size'          :{'r':36, 'g':98, 'b':132}, // blue: 246284
         'size_light'    :{'r':185,'g':195,'b':212} //b9c3d4
       };
-   var SUMMARY = "The Human Rights Commission reviews and analyses the reporting of good employer obligations by Crown entities in their annual reports. \
-It also monitors their progress towards equal employment opportunities (EEO) and provides good employer guidance. The Commission's annual good employer review gives \
-Crown entities an indicator report showing their reporting progress. A new web application also allows Crown entities to track their own progress across years, and \
-compare with other Crown entities of the same size, type and the sector as a whole.";
    var ISBN = '978-0-478-35664-9';
 
   /*
@@ -519,7 +515,7 @@ compare with other Crown entities of the same size, type and the sector as a who
       this.maxYear = app.Years.getLast();
       this.title = 'Crown Entities and the Good Employer';
       this.subtitle = 'Annual Report Review '+this.minYear+' to '+this.maxYear;      
-      this.summary = SUMMARY;
+      this.summary = $('#loading .summary p').html();
     }
   });  
   views.Intro = Backbone.View.extend({
