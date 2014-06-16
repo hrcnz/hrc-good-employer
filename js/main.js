@@ -2902,7 +2902,10 @@ template: _.template('\
         } else {
           //////console.log('route:report: '+filter[0]+'-'+filter[1]);
           app.Control.set({year:year,report:filter[0],id:filter[1]});
-        
+          
+          // add google analytics event
+          {_gaq.push(['_trackEvent', 'Report', 'Selected', year + '-' + filter[0] + '-' + filter [1]]); } 
+
           // set report specific classes for css
           $('#report').removeClass (function (index, css) {
             return (css.match (/\breport-\S+/g) || []).join(' ');
