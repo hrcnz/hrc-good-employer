@@ -534,16 +534,14 @@ a.fullscreen{
   border-right: 1px solid #FFFFFF;
   display: block;
   height: 83px;
+  padding-left: 17px;
+  padding-right: 0;  
 }
 #footer .col-left {
-    padding-left: 10px;
-    padding-right: 10px;
-    width: 44%;
+    width: 43%;
 }
 #footer .col-right {
-    padding-left: 10px;
-    padding-right: 10px;
-    width: 38%;
+    width: 39%;
 }
 .footer-claim {
     font-size: 17px;

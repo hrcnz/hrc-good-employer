@@ -2411,7 +2411,6 @@ template: _.template('<div id="criteria-details-list" role="tablist"></div>')
     initialize : function(){
       this.monthNames = [ "January", "February", "March", "April", "May", "June","July", "August", "September", "October", "November", "December" ],
       this.set({
-        claim:'Mana me ngā tika tangata ma tātou - Dignity and human rights for all',        
         hrc_url_title : 'To explore all good employer reports visit:',
         hrc_url_anchor : 'www.hrc.co.nz/eeo',
         published: 'Last updated: ' +app.Control.get('updated').getDate()+'. '
@@ -2445,7 +2444,6 @@ template: _.template('\
 <div class="footer-scene">\n\
   <div class="col-left">\n\
     <div class="footer-wrap-left">\n\
-      <div class="footer-claim"><%= claim %></div>\n\
       <div class="footer-hrcurl-title"><%= hrc_url_title %></div>\n\
       <div class="footer-hrcurl"><a href="<%= hrc_url %>" target="_blank" title="<%= hrc_url_title %> <%= hrc_url_anchor %>"><%= hrc_url_anchor %></a></div>\n\
     </div>\n\
@@ -2511,9 +2509,9 @@ template: _.template('\
         half                  : {y:15,x:15,w:85,h:0,size:8,style:'normal',margin:{top:0,bottom:2,right:0,left:0},color:COLORS.dark},        
         intro_title           : {y:15,size:17,style:'bold'},
         intro_subtitle        : {y:24,size:10,style:'bold'},
-        intro_summary         : {y:32,w:128},
+        intro_summary         : {y:32,w:129},
         intro_logo            : {y:13,x:163,w:32,h:35},
-        intro_line            : {y:58,h:0.75,color:COLORS.dark},
+        intro_line            : {y:61,h:0.75,color:COLORS.dark},
         //----------------
         //----------------
         overview_title        : {y:71,w:130,size:16,yalign:'center'},
