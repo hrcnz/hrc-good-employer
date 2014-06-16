@@ -55,6 +55,23 @@ $(function() {
       $('.accordion-bottom').attr('aria-hidden',true);
       $('a.accordion-open').attr('aria-hidden',false);
       $('a.accordion-false').attr('aria-hidden',true);        
+    },
+    renderPdf : function (){   
+      
+      // load image data json      
+      $.getJSON('data/pdfimagedata.json',function(imagedata){
+        app.docWriter = new models.DocWriter ({images:imagedata});
+
+        app.viewsIntro.renderPdf(app.docWriter);
+        app.viewsOverview.renderPdf(app.docWriter);
+        app.docWriter.addText('1/2','page_no');
+        // skips to page 2
+        app.viewsDetails.renderPdf(app.docWriter);
+        app.docWriter.addText('2/2','page_no');
+        app.viewsFooter.renderPdf(app.docWriter);
+        
+        app.docWriter.output();
+      });   
     }
   });
   // YEARS
@@ -631,8 +648,10 @@ $(function() {
       app.App.navigate(this.$("#year").val() + '/report/' + this.model.get('report') + '-' + this.model.get('id') , {trigger: true});
     },
     renderPdf: function( event ){
-        event.preventDefault();
-        renderPdf();
+      event.preventDefault();
+      // add google analytics event
+      {_gaq.push(['_trackEvent', 'Report', 'PDF', this.model.get('year') + '-' + this.model.get('report') + '-' + this.model.get('id')]); } 
+      this.model.renderPdf();
     },
     template: _.template('\
 <div class="row">\n\
@@ -2458,29 +2477,7 @@ template: _.template('\
 <div class="footer-builtby pull-right"><a href="<%= builtby_url %>" target="_blank" title="<%= builtby %>"><%= builtby %></a></div>\n\
     ')              
   });
-  
- 
-  
-
-  
-  function renderPdf() {   
-      
-      // load image data json
-      
-      $.getJSON('data/pdfimagedata.json',function(imagedata){
-        app.docWriter = new models.DocWriter ({images:imagedata});
-
-        app.viewsIntro.renderPdf(app.docWriter);
-        app.viewsOverview.renderPdf(app.docWriter);
-        app.docWriter.addText('1/2','page_no');
-        // skips to page 2
-        app.viewsDetails.renderPdf(app.docWriter);
-        app.docWriter.addText('2/2','page_no');
-        app.viewsFooter.renderPdf(app.docWriter);
-        
-        app.docWriter.output();
-      });   
-  } 
+   
   
   models.DocWriter = Backbone.Model.extend({
     initialize : function(){
@@ -2509,9 +2506,9 @@ template: _.template('\
         half                  : {y:15,x:15,w:85,h:0,size:8,style:'normal',margin:{top:0,bottom:2,right:0,left:0},color:COLORS.dark},        
         intro_title           : {y:15,size:17,style:'bold'},
         intro_subtitle        : {y:24,size:10,style:'bold'},
-        intro_summary         : {y:32,w:129},
+        intro_summary         : {y:32,w:138},
         intro_logo            : {y:13,x:163,w:32,h:35},
-        intro_line            : {y:61,h:0.75,color:COLORS.dark},
+        intro_line            : {y:60,h:0.75,color:COLORS.dark},
         //----------------
         //----------------
         overview_title        : {y:71,w:130,size:16,yalign:'center'},
