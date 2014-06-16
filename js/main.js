@@ -650,7 +650,9 @@ $(function() {
     renderPdf: function( event ){
       event.preventDefault();
       // add google analytics event
-      {_gaq.push(['_trackEvent', 'Report', 'PDF', this.model.get('year') + '-' + this.model.get('report') + '-' + this.model.get('id')]); } 
+      {_gaq.push(['_trackEvent', 'PDF-Report', 
+          this.model.get('year') + '-' + this.model.get('report') + '-' + this.model.get('id'), 
+          this.model.get('year') + '-' + this.model.get('report') + '-' + this.model.get('id')]); } 
       this.model.renderPdf();
     },
     template: _.template('\
@@ -2899,7 +2901,7 @@ template: _.template('\
           app.Control.set({year:year,report:filter[0],id:filter[1]});
           
           // add google analytics event
-          {_gaq.push(['_trackEvent', 'Report', 'Selected', year + '-' + filter[0] + '-' + filter [1]]); } 
+          {_gaq.push(['_trackEvent', 'Online-Report', year + '-' + filter[0] + '-' + filter [1], year + '-' + filter[0] + '-' + filter [1]]); } 
 
           // set report specific classes for css
           $('#report').removeClass (function (index, css) {
