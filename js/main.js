@@ -1632,7 +1632,7 @@ template: _.template('\
               year : this.currentYear,
               id : 'participation',
               report : app.Control.get('report'),
-              results : results.geref,
+              results : results.participation,
               title : app.Criteria.findWhere({id:'participation'}).get('title').trim(),
               summary : this.currentYearData.get('summaryparticipation')
             })
