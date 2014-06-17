@@ -633,15 +633,27 @@ $(function() {
     },        
     selectEntity: function( event ){
       event.preventDefault();
-      app.App.navigate(this.model.get('year') + '/report/entity-' + this.$("#entity").val(), {trigger: true});
+      if (this.$("#entity").val() !== '' ) {
+        app.App.navigate(this.model.get('year') + '/report/entity-' + this.$("#entity").val(), {trigger: true});
+      } else {
+        app.App.navigate(this.model.get('year') + '/report/all-entities', {trigger: true});
+      }
     },        
     selectType: function( event ){
       event.preventDefault();
-      app.App.navigate(this.model.get('year') + '/report/type-' + this.$("#type").val(), {trigger: true});
+      if (this.$("#type").val() !== '' ) {
+        app.App.navigate(this.model.get('year') + '/report/type-' + this.$("#type").val(), {trigger: true});
+      } else {
+        app.App.navigate(this.model.get('year') + '/report/all-entities', {trigger: true});
+      }        
     },        
     selectSize: function( event ){
       event.preventDefault();
-      app.App.navigate(this.model.get('year') + '/report/size-' + this.$("#size").val(), {trigger: true});
+      if (this.$("#size").val() !== '' ) {
+        app.App.navigate(this.model.get('year') + '/report/size-' + this.$("#size").val(), {trigger: true});
+      } else {
+        app.App.navigate(this.model.get('year') + '/report/all-entities', {trigger: true});
+      }
     },
     selectYear: function( event ){
       event.preventDefault();
@@ -2987,11 +2999,22 @@ template: _.template('\
     // Start the application
   $(function() {
     //Initialise tabletop instance with data, calls data_loaded when all data read
-    Tabletop.init({ 
-      key: DOC_URL, 
-      parseNumbers : true, 
-      callback: data_loaded,
-      proxy: 'https://hrceeo.s3.amazonaws.com'});
+    if (typeof isdebug === 'undefined') {
+      // use proxy for data
+      Tabletop.init({ 
+        key: DOC_URL, 
+        parseNumbers : true, 
+        callback: data_loaded,
+        proxy: 'https://hrceeo.s3.amazonaws.com'
+      });
+    } else {
+      // use spreadsheet data
+      Tabletop.init({ 
+        key: DOC_URL, 
+        parseNumbers : true, 
+        callback: data_loaded    
+      });
+    }
   });  
 
 });
