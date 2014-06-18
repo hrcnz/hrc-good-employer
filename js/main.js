@@ -82,13 +82,13 @@ $(function() {
   models.Year = Backbone.Model.extend({
     initialize : function(){
       //remove any hidden characters that may come from the original data, best replace other fields to
-      this.set('summaryoverview',this.get('summaryoverview').replace(/[^\u0000-\u007E]/g, ' ').replace('  ',' ').replace('0',''));      
-      this.set('summarygeref',this.get('summarygeref').replace(/[^\u0000-\u007E]/g, ' ').replace('  ',' ').replace('0',''));      
-      this.set('summaryeeoref',this.get('summaryeeoref').replace(/[^\u0000-\u007E]/g, ' ').replace('  ',' ').replace('0',''));      
-      this.set('summarygeelements',this.get('summarygeelements').replace(/[^\u0000-\u007E]/g, ' ').replace('  ',' ').replace('0',''));      
-      this.set('summaryreview',this.get('summaryreview').replace(/[^\u0000-\u007E]/g, ' ').replace('  ',' ').replace('0',''));      
-      this.set('summarywp',this.get('summarywp').replace(/[^\u0000-\u007E]/g, ' ').replace('  ',' ').replace('0',''));      
-      this.set('summaryparticipation',this.get('summaryparticipation').replace(/[^\u0000-\u007E]/g, ' ').replace('  ',' ').replace('0',''));      
+      this.set('summaryoverview',this.get('summaryoverview').replace(/[^\u0000-\u007E]/g, ' ').replace('  ',' '));
+      this.set('summarygeref',this.get('summarygeref').replace(/[^\u0000-\u007E]/g, ' ').replace('  ',' '));
+      this.set('summaryeeoref',this.get('summaryeeoref').replace(/[^\u0000-\u007E]/g, ' ').replace('  ',' '));
+      this.set('summarygeelements',this.get('summarygeelements').replace(/[^\u0000-\u007E]/g, ' ').replace('  ',' '));
+      this.set('summaryreview',this.get('summaryreview').replace(/[^\u0000-\u007E]/g, ' ').replace('  ',' '));
+      this.set('summarywp',this.get('summarywp').replace(/[^\u0000-\u007E]/g, ' ').replace('  ',' '));
+      this.set('summaryparticipation',this.get('summaryparticipation').replace(/[^\u0000-\u007E]/g, ' ').replace('  ',' '));
     },
     // check if the year is active 
     isActive: function(){
@@ -252,7 +252,9 @@ $(function() {
     initialize: function(){
       this.set('typeid',this.get('typeid').trim());
       //remove any hidden characters that may come from the original data, best replace other fields to
-      this.set('summaryoverview',this.get('summaryoverview').toString().replace(/[^\u0000-\u007E]/g, ' ').replace('  ',' ').replace('0',''));
+      this.set('summaryoverview',this.get('summaryoverview').toString().replace(/[^\u0000-\u007E]/g, ' ').replace('  ',' '));
+      // whitespaces are read as 0 for some reason
+      if (this.get('summaryoverview') === '0') this.set('summaryoverview','');
       if (this.get('staffno')==='')this.set('staffno',0);
       if (this.get('type')==='')this.set('type','NS');      
     },
