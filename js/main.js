@@ -2,7 +2,7 @@ $(function() {
   // globals   
   //
   // the pseudo database: all data kept in google spreadsheet   
-  var doc_key  = '0AjJMRBK0X7j7dGNfXzVDY1VhVGRZb1E2eFJmZU9vY3c';
+  var doc_key  = '1tqmFWhHqsCQ7-OjwHaDxW66xJ_3R8hTbF3PqTCEikbg';
   var DOC_URL  = 'https://docs.google.com/spreadsheet/pub?hl=en_US&hl=en_US&key='+doc_key+'&output=html';
   var URL      = 'http://hrcnz.github.io/hrc-good-employer';
   var models   = {};
