@@ -3001,7 +3001,7 @@ template: _.template('\
     // Start the application
   $(function() {
     //Initialise tabletop instance with data, calls data_loaded when all data read
-    if (typeof isdebug === 'undefined') {
+    if (typeof isdebug === 'undefined' || isdebug === false) {
       // use proxy for data
       Tabletop.init({ 
         key: DOC_URL, 
