@@ -5,6 +5,7 @@ $(function() {
   var doc_key  = '1tqmFWhHqsCQ7-OjwHaDxW66xJ_3R8hTbF3PqTCEikbg';
   var DOC_URL  = 'https://docs.google.com/spreadsheet/pub?hl=en_US&hl=en_US&key='+doc_key+'&output=html';
   var URL      = 'http://hrcnz.github.io/hrc-good-employer';
+  var aws_proxy = 'https://cegebuffer.s3.amazonaws.com'
   var models   = {};
   var views    = {};
   var routers  = {};
@@ -3007,7 +3008,7 @@ template: _.template('\
         key: DOC_URL, 
         parseNumbers : true, 
         callback: data_loaded,
-        proxy: 'https://hrceeo.s3.amazonaws.com'
+        proxy: aws_proxy
       });
     } else {
       // use spreadsheet data
